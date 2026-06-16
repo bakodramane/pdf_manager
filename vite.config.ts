@@ -2,8 +2,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// Fully client-side app — no proxy, no backend, no network access.
+// base: './' produces relative asset paths so the built index.html works
+// when loaded from a file:// URL inside Electron (dist/index.html).
+// It also keeps the browser dev workflow working via the Vite dev server.
 export default defineConfig({
+  base: "./",
   plugins: [react()],
   worker: {
     format: "es",

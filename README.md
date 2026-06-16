@@ -30,6 +30,73 @@ previews.
 ### Convert
 - **PDF → Word (.docx)** and **PDF → Excel (.xlsx)** via text-layer extraction
 
+## Desktop builds (Electron)
+
+The app ships as two Windows artifacts built with [electron-builder](https://www.electron.build/).
+Both run **without administrator rights** and make **zero network calls** at runtime.
+
+### Build the artifacts
+
+```bash
+npm run dist             # builds both portable + installer in one pass
+npm run dist:portable    # portable .exe only
+npm run dist:installer   # NSIS installer only
+```
+
+Artifacts land in `release/`:
+
+| File | Type | Size (approx.) |
+|------|------|----------------|
+| `PDF Manager-0.1.0-portable.exe` | Portable single-file | ~89 MB |
+| `PDF Manager-0.1.0-Setup.exe`    | Per-user NSIS installer | ~100 MB |
+
+### Portable .exe
+
+- **No installation needed.** Copy it to any folder or USB drive and double-click.
+- Writes user data (window state, etc.) next to itself or to a temp profile.
+- Requires no admin rights, triggers no UAC prompt.
+
+### Per-user NSIS installer
+
+- Installs into **`%LOCALAPPDATA%\Programs\PDF Manager`** (no admin, no UAC).
+- Creates Start Menu and Desktop shortcuts.
+- Provides a standard uninstaller under Add/Remove Programs (user scope).
+
+### SmartScreen warning (expected)
+
+The executables are **unsigned** (no code-signing certificate). Windows SmartScreen
+will show a blue *"Windows protected your PC"* dialog on first run. This is expected
+for private unsigned builds. To proceed:
+
+1. Click **More info**.
+2. Click **Run anyway**.
+
+SmartScreen does not block the app permanently; it only asks once per executable.
+
+### Develop with Electron
+
+```bash
+npm run electron:dev   # starts Vite dev server + Electron side-by-side
+```
+
+The browser dev workflow (`npm run dev`) is unchanged.
+
+### Renderer security model
+
+| Setting | Value |
+|---------|-------|
+| `nodeIntegration` | `false` |
+| `contextIsolation` | `true` |
+| `sandbox` | `true` |
+| External navigation | blocked (`will-navigate`) |
+| New windows | denied (`setWindowOpenHandler`) |
+
+The renderer has no access to Node.js APIs. File exports use the existing
+in-browser Blob download — no native save dialog (avoids IPC complexity for
+a single-user private app).
+
+---
+
 ## Getting started
 
 ```bash

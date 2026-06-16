@@ -1,0 +1,47 @@
+appId: com.local.pdfmanager
+productName: PDF Manager
+
+# Point electron-builder at the Electron entry scripts, not the web source.
+directories:
+  output: release
+  buildResources: build
+
+# Files included in the packaged app.
+files:
+  - dist/**/*          # built web assets (Vite output)
+  - electron/**/*      # main + preload scripts
+
+# Electron main entry — must match package.json "main".
+# electron-builder reads this field automatically from package.json.
+
+# Use the pre-extracted electron binary bundled with the npm package to avoid
+# a second download and the EPERM rename issue on Windows.
+electronDist: node_modules/electron/dist
+
+asar: true             # pack source into an asar archive (faster startup)
+asarUnpack:            # unpack assets PDF.js needs to read at runtime
+  - "dist/pdfjs/**"
+
+win:
+  requestedExecutionLevel: asInvoker  # never request admin elevation
+  target:
+    - target: portable
+      arch: [x64]
+    - target: nsis
+      arch: [x64]
+
+portable:
+  artifactName: "${productName}-${version}-portable.exe"
+
+nsis:
+  oneClick: false              # show the installer wizard pages
+  perMachine: false            # install into %LOCALAPPDATA%\Programs
+  allowElevation: false        # hard-block any elevation request
+  allowToChangeInstallationDirectory: false
+  menuCategory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  artifactName: "${productName}-${version}-Setup.exe"
+
+# Disable auto-update entirely — offline private app, no publish target.
+publish: null

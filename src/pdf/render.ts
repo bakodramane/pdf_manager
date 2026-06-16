@@ -1,10 +1,18 @@
 import * as pdfjs from "pdfjs-dist";
 import type { PDFDocumentProxy } from "pdfjs-dist";
-// Vite resolves this to a hashed URL for the worker bundle. Running the
-// parser off the main thread keeps the UI responsive on large files.
+// Worker bundle is resolved by Vite to a local hashed URL; runs off the main
+// thread for large files.
 import workerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+
+// CMaps and standard fonts are bundled under public/pdfjs/ so PDF.js never
+// makes network requests — required for the Electron offline build.
+// With base: './', import.meta.env.BASE_URL is './' in production and '/' in
+// dev; both correctly resolve to the public/ assets served by Vite or Electron.
+const BASE = import.meta.env.BASE_URL;
+const CMAP_URL = `${BASE}pdfjs/cmaps/`;
+const FONT_URL = `${BASE}pdfjs/standard_fonts/`;
 
 const docCache = new Map<string, Promise<PDFDocumentProxy>>();
 
@@ -15,10 +23,15 @@ export function getRenderDoc(
 ): Promise<PDFDocumentProxy> {
   const existing = docCache.get(sourceId);
   if (existing) return existing;
-  // PDF.js transfers/detaches the buffer it's given, so hand it a copy and
-  // keep the caller's bytes intact for pdf-lib export.
+  // PDF.js transfers/detaches the buffer, so pass a copy to keep source bytes
+  // intact for pdf-lib.
   const copy = bytes.slice();
-  const task = pdfjs.getDocument({ data: copy }).promise;
+  const task = pdfjs.getDocument({
+    data: copy,
+    cMapUrl: CMAP_URL,
+    cMapPacked: true,
+    standardFontDataUrl: FONT_URL,
+  }).promise;
   docCache.set(sourceId, task);
   return task;
 }
@@ -29,10 +42,6 @@ export function dropRenderDoc(sourceId: string): void {
   void t?.then((d) => d.destroy()).catch(() => undefined);
 }
 
-/**
- * Render a single page to a canvas and return a PNG data URL.
- * `extraRotation` is composed with the page's intrinsic rotation.
- */
 export async function renderPageThumbnail(
   doc: PDFDocumentProxy,
   pageIndex: number,
