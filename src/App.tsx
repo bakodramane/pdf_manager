@@ -142,7 +142,12 @@ export default function App() {
                 />
               )}
               {tab === "compress" && (
-                <CompressPanel editor={editor} run={run} assemble={assemble} />
+                <CompressPanel
+                  editor={editor}
+                  run={run}
+                  assemble={assemble}
+                  baseName={baseName}
+                />
               )}
               {tab === "convert" && (
                 <ConvertPanel

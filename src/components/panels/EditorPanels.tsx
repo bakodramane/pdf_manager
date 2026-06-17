@@ -301,10 +301,12 @@ export function CompressPanel({
   editor,
   run,
   assemble,
+  baseName,
 }: {
   editor: EditorApi;
   run: RunFn;
   assemble: AssembleFn;
+  baseName: string;
 }) {
   const [result, setResult] = useState<string | null>(null);
   const doCompress = () =>
@@ -312,9 +314,17 @@ export function CompressPanel({
       const before = await assemble();
       const after = await compressPdf(before);
       const pct = Math.max(0, Math.round((1 - after.length / before.length) * 100));
-      editor.replaceWithBytes(after, "compressed.pdf", editor.pages.length);
+      const outputName = deriveName(baseName, "_compressed");
+      downloadBytes(after, outputName);
+      editor.replaceWithBytes(after, outputName, editor.pages.length);
       setResult(
-        `Saved ${pct}% (${fmt(before.length)} to ${fmt(after.length)}). Export to download.`,
+        pct > 0
+          ? `Downloaded ${outputName}. Saved ${pct}% (${fmt(before.length)} to ${fmt(
+              after.length,
+            )}).`
+          : `Downloaded ${outputName}. This PDF could not be reduced further (${fmt(
+              before.length,
+            )} to ${fmt(after.length)}).`,
       );
     });
   return (
@@ -333,8 +343,8 @@ export function CompressPanel({
         </p>
       )}
       <p>
-        Re-packs the PDF structure with object streams. Embedded images are not
-        re-encoded, so gains vary.
+        Downloads a re-packed PDF. Embedded images are not re-encoded, so gains
+        vary.
       </p>
     </div>
   );

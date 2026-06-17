@@ -1,10 +1,11 @@
 import * as pdfjs from "pdfjs-dist";
 import type { PDFDocumentProxy } from "pdfjs-dist";
-// Vite resolves this to a hashed URL for the worker bundle. Running the
-// parser off the main thread keeps the UI responsive on large files.
-import workerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
+// Vite bundles this as a real module worker. Passing the Worker instance avoids
+// PDF.js' fake-worker fallback, which can try to dynamically import from
+// /node_modules at runtime and fail in the browser.
+import PdfJsWorker from "pdfjs-dist/build/pdf.worker.mjs?worker";
 
-pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+pdfjs.GlobalWorkerOptions.workerPort = new PdfJsWorker();
 
 const docCache = new Map<string, Promise<PDFDocumentProxy>>();
 
