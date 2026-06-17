@@ -6,6 +6,7 @@ interface Props {
   label?: string;
   accept?: string;
   multiple?: boolean;
+  variant?: "default" | "large";
 }
 
 /** Reusable drag-and-drop + click-to-browse file picker. */
@@ -14,14 +15,28 @@ export function FileDrop({
   label = "Drop PDF files here, or click to browse",
   accept = "application/pdf",
   multiple = true,
+  variant = "default",
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
 
   return (
     <div
-      className={[styles.dropzone, over ? styles.over : ""].join(" ")}
+      className={[
+        styles.dropzone,
+        variant === "large" ? styles.dropzoneLarge : "",
+        over ? styles.over : "",
+      ].join(" ")}
+      role="button"
+      tabIndex={0}
+      aria-label={label}
       onClick={() => inputRef.current?.click()}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          inputRef.current?.click();
+        }
+      }}
       onDragOver={(e) => {
         e.preventDefault();
         setOver(true);

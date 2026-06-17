@@ -8,6 +8,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1rem;
   padding: 0.75rem 1.25rem;
   border-bottom: 1px solid var(--border);
   background: var(--panel);
@@ -17,6 +18,7 @@
   display: flex;
   align-items: baseline;
   gap: 0.6rem;
+  min-width: 0;
 }
 
 .title h1 {
@@ -38,8 +40,13 @@
   min-height: 0;
 }
 
+.emptyBody {
+  display: block;
+}
+
 .sidebar {
   width: 320px;
+  flex: 0 0 320px;
   border-right: 1px solid var(--border);
   background: var(--panel);
   overflow-y: auto;
@@ -54,6 +61,14 @@
   min-width: 0;
   overflow-y: auto;
   padding: 1rem 1.25rem;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .tabs {
@@ -73,6 +88,12 @@
   background: var(--accent);
   border-color: var(--accent);
   color: white;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .section {
@@ -108,6 +129,12 @@
   flex: 1;
 }
 
+.positionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -122,15 +149,59 @@
   gap: 1rem;
 }
 
+.actionBar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: -1rem -1.25rem 1rem;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(24, 27, 34, 0.96);
+  backdrop-filter: blur(10px);
+}
+
+.actionButtons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.actionButtons button {
+  min-width: 2.5rem;
+}
+
 .empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100%;
+  min-height: calc(100vh - 64px);
   color: var(--muted);
-  gap: 0.75rem;
+  gap: 1rem;
   text-align: center;
+  padding: 2rem 1rem;
+}
+
+.emptyIntro {
+  max-width: 560px;
+}
+
+.emptyIntro h2 {
+  margin: 0 0 0.5rem;
+  color: var(--text);
+  font-size: 1.6rem;
+}
+
+.emptyIntro p {
+  margin: 0;
+  line-height: 1.5;
 }
 
 .dropzone {
@@ -140,6 +211,20 @@
   text-align: center;
   color: var(--muted);
   transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.dropzone:focus-visible,
+.thumb:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.dropzoneLarge {
+  width: min(520px, 100%);
+  padding: 2.5rem;
+  font-size: 1rem;
 }
 
 .dropzone.over {
@@ -173,6 +258,30 @@
   max-width: 100%;
   max-height: 100%;
   display: block;
+}
+
+.thumbControls {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.thumb:hover .thumbControls,
+.thumb:focus-within .thumbControls {
+  opacity: 1;
+}
+
+.thumbControls button {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(0, 0, 0, 0.62);
+  color: white;
 }
 
 .thumbLoading {
@@ -223,6 +332,14 @@
   z-index: 50;
   white-space: pre-wrap;
   font-size: 0.85rem;
+  text-align: left;
+}
+
+.toastHint {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--muted);
+  font-size: 0.75rem;
 }
 
 .overlay {
@@ -256,4 +373,94 @@
 .muted {
   color: var(--muted);
   font-size: 0.8rem;
+}
+
+.feedback {
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 760px) {
+  .app {
+    min-height: 100%;
+  }
+
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 0.9rem 1rem;
+  }
+
+  .title {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .headerActions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .body {
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .sidebar {
+    width: 100%;
+    flex: none;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    overflow: visible;
+  }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .tab {
+    min-height: 2.5rem;
+  }
+
+  .main {
+    overflow: visible;
+    padding: 1rem;
+  }
+
+  .actionBar {
+    align-items: flex-start;
+    flex-direction: column;
+    margin: -1rem -1rem 1rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .actionButtons {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .empty {
+    min-height: calc(100vh - 132px);
+  }
+}
+
+@media (max-width: 430px) {
+  .headerActions button {
+    flex: 1;
+  }
+
+  .tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .positionGrid {
+    grid-template-columns: 1fr;
+  }
 }

@@ -29,10 +29,13 @@ export function PageGrid({
           key={page.id}
           page={page}
           index={index}
+          pageCount={pages.length}
           source={getSource(page.sourceId)}
           selected={selected.has(page.id)}
           dragging={dragIndex === index || overIndex === index}
           onToggle={onToggle}
+          onMoveUp={(i) => onReorder(i, i - 1)}
+          onMoveDown={(i) => onReorder(i, i + 1)}
           onDragStart={(i) => {
             dragFrom.current = i;
             setDragIndex(i);
