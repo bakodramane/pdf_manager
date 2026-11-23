@@ -7,6 +7,7 @@ import {
   normalizeRotation,
   rotatePages,
   splitIntoRanges,
+  parsePageRanges,
 } from "./operations";
 import type { PageRef } from "./types";
 
@@ -103,5 +104,40 @@ describe("splitIntoRanges", () => {
     expect(splitIntoRanges(mk(3), []).map(ids)).toEqual([
       ["p0", "p1", "p2"],
     ]);
+  });
+});
+
+describe("parsePageRanges", () => {
+  it("parses single pages and ranges in typed order", () => {
+    expect(parsePageRanges("1-3, 7", 10)).toEqual([0, 1, 2, 6]);
+    expect(parsePageRanges("7, 1-2", 10)).toEqual([6, 0, 1]);
+  });
+
+  it("accepts open-ended, reversed, and dash-variant ranges", () => {
+    expect(parsePageRanges("8-", 10)).toEqual([7, 8, 9]);
+    expect(parsePageRanges("-2", 10)).toEqual([0, 1]);
+    expect(parsePageRanges("4-2", 10)).toEqual([3, 2, 1]);
+    expect(parsePageRanges("2 – 4", 10)).toEqual([1, 2, 3]);
+  });
+
+  it("accepts spaces and semicolons as separators and drops duplicates", () => {
+    expect(parsePageRanges("1 3;3, 1-2", 5)).toEqual([0, 2, 1]);
+  });
+
+  it("rejects malformed input with a coded error", () => {
+    for (const bad of ["", "  ", "a", "1-2-3", "-", "1.5", "3-x"]) {
+      expect(() => parsePageRanges(bad, 10), bad).toThrow(
+        expect.objectContaining({ code: "invalidRange" }),
+      );
+    }
+  });
+
+  it("rejects pages outside the document", () => {
+    expect(() => parsePageRanges("0", 5)).toThrow(
+      expect.objectContaining({ code: "rangeOutOfBounds" }),
+    );
+    expect(() => parsePageRanges("4-6", 5)).toThrow(
+      expect.objectContaining({ code: "rangeOutOfBounds", params: { page: 6, max: 5 } }),
+    );
   });
 });

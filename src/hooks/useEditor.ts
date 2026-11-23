@@ -66,6 +66,11 @@ export function useEditor() {
     setSelected(new Set(pages.map((p) => p.id)));
   }, [pages]);
 
+  /** Replace the selection with the given page ids. */
+  const selectPages = useCallback((ids: string[]) => {
+    setSelected(new Set(ids));
+  }, []);
+
   const pruneSelection = useCallback((nextPages: PageRef[]) => {
     const live = new Set(nextPages.map((p) => p.id));
     setSelected((prev) => new Set([...prev].filter((id) => live.has(id))));
@@ -155,6 +160,7 @@ export function useEditor() {
     toggleSelect,
     clearSelection,
     selectAll,
+    selectPages,
     deleteSelected,
     rotateSelected,
     extractSelected,

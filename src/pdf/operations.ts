@@ -1,4 +1,5 @@
 import type { PageRef } from "./types";
+import { AppError } from "./errors";
 
 /**
  * Pure, immutable operations on an ordered list of page references.
@@ -86,4 +87,63 @@ export function splitIntoRanges(
   }
   chunks.push(pages.slice(start));
   return chunks.filter((c) => c.length > 0);
+}
+
+/**
+ * Parse a page-range string such as "1-3, 7, 10-" into zero-based page
+ * indices, in the order typed (duplicates are dropped after their first
+ * appearance).
+ *
+ * Accepted tokens, separated by commas, semicolons, or spaces:
+ *   "7"     a single page
+ *   "1-3"   an inclusive range ("5-2" runs backwards: 5, 4, 3, 2)
+ *   "10-"   from page 10 to the last page
+ *   "-3"    from the first page to page 3
+ *
+ * Throws AppError("invalidRange") for malformed tokens and
+ * AppError("rangeOutOfBounds") for pages outside 1..pageCount.
+ */
+export function parsePageRanges(input: string, pageCount: number): number[] {
+  const tokens = input
+    .replace(/[\u2013\u2014]/g, "-") // en/em dashes typed or pasted
+    .replace(/\s*-\s*/g, "-")
+    .split(/[\s,;]+/)
+    .filter(Boolean);
+  if (tokens.length === 0) {
+    throw new AppError("invalidRange", "No pages given.", { range: input.trim() });
+  }
+
+  const result: number[] = [];
+  const seen = new Set<number>();
+  const push = (page: number) => {
+    if (!seen.has(page)) {
+      seen.add(page);
+      result.push(page - 1);
+    }
+  };
+
+  for (const token of tokens) {
+    const match = /^(\d*)-(\d*)$|^(\d+)$/.exec(token);
+    if (!match || token === "-") {
+      throw new AppError("invalidRange", `Invalid page range "${token}".`, {
+        range: token,
+      });
+    }
+    const [from, to] =
+      match[3] !== undefined
+        ? [Number(match[3]), Number(match[3])]
+        : [match[1] ? Number(match[1]) : 1, match[2] ? Number(match[2]) : pageCount];
+    for (const page of [from, to]) {
+      if (page < 1 || page > pageCount) {
+        throw new AppError(
+          "rangeOutOfBounds",
+          `Page ${page} is outside 1-${pageCount}.`,
+          { page, max: pageCount },
+        );
+      }
+    }
+    const step = from <= to ? 1 : -1;
+    for (let page = from; page !== to + step; page += step) push(page);
+  }
+  return result;
 }

@@ -8,7 +8,6 @@ export const fr: Messages = {
   "app.badge": "100 % local",
   "app.reset": "Fermer le document",
   "app.language": "Langue",
-  "app.byAuthor": "par {author}",
   "app.authorLinkTitle": "Voir la page GitHub de l'auteur",
   "app.privacyNote": "Vos fichiers ne quittent jamais cet appareil",
 
@@ -19,6 +18,28 @@ export const fr: Messages = {
   "nav.compress": "Compresser",
   "nav.convert": "Convertir",
   "nav.export": "Exporter",
+  "nav.credits": "Crédits",
+  "nav.shortcuts": "Raccourcis clavier",
+
+  // Boîtes de dialogue
+  "dialog.close": "Fermer",
+  "credits.title": "Crédits",
+  "credits.version": "Version {version}",
+  "credits.createdBy": "Créé par",
+  "credits.github": "Voir le profil GitHub",
+  "credits.builtWith": "Conçu avec React, pdf-lib, PDF.js, docx, ExcelJS et Electron.",
+  "credits.licence": "Publié sous licence Apache 2.0.",
+  "shortcuts.title": "Raccourcis clavier",
+  "shortcuts.open": "Ouvrir ou ajouter un PDF",
+  "shortcuts.selectAll": "Sélectionner toutes les pages",
+  "shortcuts.clear": "Effacer la sélection",
+  "shortcuts.rotateRight": "Faire pivoter la sélection à droite",
+  "shortcuts.rotateLeft": "Faire pivoter la sélection à gauche",
+  "shortcuts.delete": "Supprimer les pages sélectionnées",
+  "shortcuts.extract": "Extraction (plage de pages ou sélection)",
+  "shortcuts.export": "Télécharger le PDF modifié",
+  "shortcuts.help": "Afficher cette liste",
+  "shortcuts.hint": "Appuyez sur ? pour afficher les raccourcis clavier",
 
   // Accueil (aucun document)
   "home.title": "Votre boîte à outils PDF, directement sur votre ordinateur",
@@ -58,7 +79,11 @@ export const fr: Messages = {
   "pages.rotateRight": "Pivoter à droite",
   "pages.extraction": "Extraction",
   "pages.extractionHint":
-    "L'extraction enregistre les pages sélectionnées dans un nouveau PDF, sans modifier le document en cours.",
+    "Saisissez des pages ou des plages (1-3, 7, 10-), ou laissez le champ vide pour utiliser les pages sélectionnées dans la grille. Un nouveau PDF est enregistré ; le document en cours reste inchangé.",
+  "pages.rangeLabel": "Pages à extraire",
+  "pages.rangePlaceholder": "ex. 1-3, 7",
+  "pages.rangeSelect": "Sélectionner",
+  "pages.rangeSelectTitle": "Sélectionner ces pages dans la grille",
   "pages.keepOnly": "Ne garder que la sélection",
   "pages.delete": "Supprimer",
   "pages.reorderHint": "Réordonnez les pages en les faisant glisser dans la grille.",
@@ -160,4 +185,7 @@ export const fr: Messages = {
   "error.noPages": "« {name} » ne contient aucune page.",
   "error.nothingToExport": "Rien à exporter : le document ne contient aucune page.",
   "error.missingSource": "Un PDF source est introuvable.",
+  "error.invalidRange":
+    "« {range} » n'est pas une plage de pages valide. Utilisez des numéros et des plages comme 1-3, 7.",
+  "error.rangeOutOfBounds": "La page {page} n'existe pas : le document compte {max} pages.",
 };

@@ -17,8 +17,11 @@ previews. The Windows desktop app is packaged with Electron.
   thumbnail grid
 - **Select** pages, **rotate** (left/right), **delete**, and **reorder** them by
   dragging thumbnails
-- **Extraction**: save the selected pages as a new PDF (`<name>_extraction.pdf`)
-  while the current document stays unchanged
+- **Extraction**: save pages as a new PDF (`<name>_extraction.pdf`) while the
+  current document stays unchanged. Either type pages and ranges in the
+  *Pages to extract* box — `1-3, 7`, `10-` (to the end), `-4` (from the
+  start), `5-2` (reversed) — or leave it empty to use the pages selected in
+  the grid. **Select** highlights the typed pages in the grid first.
 - **Keep only selected**: drop every page that is not selected
 - **Merge** multiple PDFs (added files are appended to the working document)
 - **Split** a PDF at chosen page boundaries (each part downloads separately)
@@ -40,6 +43,31 @@ previews. The Windows desktop app is packaged with Electron.
 - **PDF → Excel (.xlsx)**: one sheet per page; tables become real cell grids
   with merged cells, borders, and shading, and numbers (`1,234.50`, `(15)`,
   `12%`, `$9.99`, `1 234,56`) are stored as numbers with a matching format
+
+### Keyboard shortcuts
+
+Press **?** in the app (or click **Keyboard shortcuts** in the left menu) to
+see this list. Shortcuts are ignored while typing in a text box. On macOS,
+use ⌘ in place of Ctrl.
+
+| Keys | Action |
+|------|--------|
+| `Ctrl` + `O` | Open or add a PDF |
+| `Ctrl` + `A` | Select all pages |
+| `Esc` | Clear the selection |
+| `R` | Rotate selected pages right |
+| `Shift` + `R` | Rotate selected pages left |
+| `Delete` / `Backspace` | Delete selected pages |
+| `Ctrl` + `E` | Extraction (page range or selected pages) |
+| `Ctrl` + `S` | Download the edited PDF |
+| `?` | Show the shortcut list |
+
+### Credits
+
+The **Credits** item at the bottom of the left menu opens a box with the app
+version, the author (**Dramane Bako**, with a link to
+[github.com/bakodramane](https://github.com/bakodramane)), the libraries used,
+and the licence.
 
 ### Languages (English / Français)
 - The **Windows installer** opens with a language dialog (pre-selected from
@@ -194,9 +222,11 @@ artifacts small.
 
 ### Per-user NSIS installer
 
-- Bilingual wizard (English / French), with the author shown as publisher
-  (*Dramane Bako*) in the installer, the file properties, and *Apps &
-  features*.
+- Bilingual wizard (English / French).
+- Publisher **D.Bako**, shown in *Apps & features*, as *Company* in the
+  `.exe` properties, and as the Start Menu folder name. It comes from
+  `"author": { "name": "D.Bako" }` in `package.json`; the copyright line
+  (*Copyright © 2026 Dramane Bako*) is set in `electron-builder.yml`.
 - Installs into **`%LOCALAPPDATA%\Programs\PDF Manager`** (no admin, no UAC).
 - Creates Start Menu and Desktop shortcuts.
 - Provides a standard uninstaller under *Apps & features* (user scope).
@@ -306,8 +336,7 @@ and text uses the standard Helvetica font.
 - Optional OCR (e.g. tesseract.js) for scanned-PDF conversion
 - Text colour and header/footer detection in Word conversion
 - Per-page (not just whole-document) convert/compress
-- Keyboard shortcuts and undo/redo
-- Page-range input for Extraction (e.g. `1-3, 7`) in addition to clicking
+- Undo/redo
 
 ## Author
 

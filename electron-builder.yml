@@ -1,8 +1,10 @@
 appId: com.local.pdfmanager
 productName: PDF Manager
-# Shown in the installer, the .exe "Details" tab, and Add/Remove Programs.
-# The publisher / company name comes from package.json "author".
+# Copyright line shown in the .exe "Details" tab.
 copyright: "Copyright © 2026 Dramane Bako"
+# The publisher name ("D.Bako") comes from package.json "author.name": it is
+# shown as Publisher in Apps & features, as Company in the .exe details, and
+# names the Start Menu folder (menuCategory: true below).
 
 # Point electron-builder at the Electron entry scripts, not the web source.
 directories:

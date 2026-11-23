@@ -13,7 +13,9 @@ export type ErrorCode =
   | "corrupted"
   | "noPages"
   | "nothingToExport"
-  | "missingSource";
+  | "missingSource"
+  | "invalidRange"
+  | "rangeOutOfBounds";
 
 export class AppError extends Error {
   constructor(

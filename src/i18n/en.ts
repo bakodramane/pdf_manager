@@ -11,7 +11,6 @@ export const en = {
   "app.badge": "100% local",
   "app.reset": "Close document",
   "app.language": "Language",
-  "app.byAuthor": "by {author}",
   "app.authorLinkTitle": "Visit the author's GitHub page",
   "app.privacyNote": "Files never leave this device",
 
@@ -22,6 +21,28 @@ export const en = {
   "nav.compress": "Compress",
   "nav.convert": "Convert",
   "nav.export": "Export",
+  "nav.credits": "Credits",
+  "nav.shortcuts": "Keyboard shortcuts",
+
+  // Dialogs
+  "dialog.close": "Close",
+  "credits.title": "Credits",
+  "credits.version": "Version {version}",
+  "credits.createdBy": "Created by",
+  "credits.github": "View GitHub profile",
+  "credits.builtWith": "Built with React, pdf-lib, PDF.js, docx, ExcelJS, and Electron.",
+  "credits.licence": "Released under the Apache License 2.0.",
+  "shortcuts.title": "Keyboard shortcuts",
+  "shortcuts.open": "Open or add a PDF",
+  "shortcuts.selectAll": "Select all pages",
+  "shortcuts.clear": "Clear the selection",
+  "shortcuts.rotateRight": "Rotate selected pages right",
+  "shortcuts.rotateLeft": "Rotate selected pages left",
+  "shortcuts.delete": "Delete selected pages",
+  "shortcuts.extract": "Extraction (page range or selected pages)",
+  "shortcuts.export": "Download the edited PDF",
+  "shortcuts.help": "Show this list",
+  "shortcuts.hint": "Press ? for keyboard shortcuts",
 
   // Landing (empty state)
   "home.title": "Your PDF toolkit, right on your desktop",
@@ -60,7 +81,11 @@ export const en = {
   "pages.rotateRight": "Rotate right",
   "pages.extraction": "Extraction",
   "pages.extractionHint":
-    "Extraction saves the selected pages as a new PDF and leaves the current document unchanged.",
+    "Type pages or ranges (1-3, 7, 10-), or leave the box empty to use the pages selected in the grid. A new PDF is saved; the current document stays unchanged.",
+  "pages.rangeLabel": "Pages to extract",
+  "pages.rangePlaceholder": "e.g. 1-3, 7",
+  "pages.rangeSelect": "Select",
+  "pages.rangeSelectTitle": "Select these pages in the grid",
   "pages.keepOnly": "Keep only selected",
   "pages.delete": "Delete",
   "pages.reorderHint": "Reorder by dragging pages in the grid.",
@@ -162,6 +187,9 @@ export const en = {
   "error.noPages": "“{name}” has no pages.",
   "error.nothingToExport": "Nothing to export — the document has no pages.",
   "error.missingSource": "A source PDF is missing.",
+  "error.invalidRange":
+    "“{range}” is not a valid page range. Use page numbers and ranges such as 1-3, 7.",
+  "error.rangeOutOfBounds": "Page {page} does not exist — the document has {max} pages.",
 } as const;
 
 export type MessageKey = keyof typeof en;

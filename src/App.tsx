@@ -1,12 +1,23 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import styles from "./App.module.css";
 import { useEditor } from "./hooks/useEditor";
 import { FileDrop } from "./components/FileDrop";
 import { PageGrid } from "./components/PageGrid";
 import { Icon, type IconName } from "./components/Icon";
+import { Dialog } from "./components/Dialog";
+import { useShortcuts } from "./hooks/useShortcuts";
+import { SHORTCUT_LIST, keyLabel, type ShortcutAction } from "./hooks/shortcuts";
 import { assemblePdf, deriveName, downloadBytes } from "./pdf/assemble";
-import { extractPages, splitIntoRanges } from "./pdf/operations";
+import { extractPages, parsePageRanges, splitIntoRanges } from "./pdf/operations";
 import { compressPdf } from "./pdf/compress";
 import { applyImageOverlay, applyTextOverlay } from "./pdf/overlay";
 import { dropRenderDoc, getRenderDoc } from "./pdf/render";
@@ -27,6 +38,7 @@ const TABS: { id: Tab; label: MessageKey; icon: IconName }[] = [
 ];
 
 type Notice = { kind: "error" | "success"; text: string };
+type DialogId = "credits" | "shortcuts";
 
 export default function App() {
   const { t } = useI18n();
@@ -34,6 +46,9 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("pages");
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [dialog, setDialog] = useState<DialogId | null>(null);
+  const [extractRange, setExtractRange] = useState("");
+  const openInputRef = useRef<HTMLInputElement>(null);
 
   const { pages, selected, getSource } = editor;
   const baseName = useMemo(() => {
@@ -97,22 +112,84 @@ export default function App() {
     [pages, getSource],
   );
 
-  /** Save the selected pages as a new PDF, leaving the document untouched. */
+  /**
+   * Extraction: save the pages typed in the range box (e.g. "1-3, 7") — or,
+   * when the box is empty, the pages selected in the grid — as a new PDF.
+   * The open document is left untouched.
+   */
   const extractSelection = useCallback(
     () =>
       run(t("busy.extracting"), async () => {
-        const chosen = extractPages(pages, selected);
+        const chosen = extractRange.trim()
+          ? parsePageRanges(extractRange, pages.length).map((i) => pages[i])
+          : extractPages(pages, selected);
         if (chosen.length === 0) throw new Error(t("error.noSelection"));
         const bytes = await assemblePdf(chosen, getSource);
         const file = deriveName(baseName, "_extraction");
         downloadBytes(bytes, file);
         showSuccess(t("notice.extracted", { count: chosen.length, file }));
       }),
-    [run, t, pages, selected, getSource, baseName, showSuccess],
+    [run, t, extractRange, pages, selected, getSource, baseName, showSuccess],
+  );
+
+  /** Highlight the pages typed in the range box in the grid. */
+  const selectRange = useCallback(() => {
+    try {
+      const ids = parsePageRanges(extractRange, pages.length).map((i) => pages[i].id);
+      editor.selectPages(ids);
+    } catch (err) {
+      showError(formatError(err));
+    }
+  }, [extractRange, pages, editor, showError, formatError]);
+
+  const exportPdf = useCallback(
+    () =>
+      run(t("busy.exporting"), async () => {
+        const bytes = await assemble();
+        const file = deriveName(baseName, "_edited");
+        downloadBytes(bytes, file);
+        showSuccess(t("notice.exported", { file }));
+      }),
+    [run, t, assemble, baseName, showSuccess],
   );
 
   const hasPages = pages.length > 0;
   const hasSelection = selected.size > 0;
+  const canExtract = hasPages && (hasSelection || extractRange.trim() !== "");
+
+  const onShortcut = (action: ShortcutAction) => {
+    switch (action) {
+      case "open":
+        openInputRef.current?.click();
+        break;
+      case "selectAll":
+        editor.selectAll();
+        break;
+      case "clearSelection":
+        editor.clearSelection();
+        setNotice(null);
+        break;
+      case "delete":
+        if (hasSelection) editor.deleteSelected();
+        break;
+      case "rotateRight":
+        if (hasSelection) editor.rotateSelected(90);
+        break;
+      case "rotateLeft":
+        if (hasSelection) editor.rotateSelected(-90);
+        break;
+      case "extract":
+        if (canExtract) void extractSelection();
+        break;
+      case "export":
+        if (hasPages) void exportPdf();
+        break;
+      case "help":
+        setDialog("shortcuts");
+        break;
+    }
+  };
+  useShortcuts(onShortcut, busy === null);
   const ctx: PanelCtx = {
     editor,
     run,
@@ -122,6 +199,11 @@ export default function App() {
     hasSelection,
     addFiles,
     extractSelection,
+    extractRange,
+    setExtractRange,
+    selectRange,
+    canExtract,
+    exportPdf,
     showError,
     showSuccess,
   };
@@ -166,6 +248,22 @@ export default function App() {
               <span>{t(item.label)}</span>
             </button>
           ))}
+          <div className={styles.railSpacer} />
+          <button
+            className={[styles.railItem, dialog === "shortcuts" ? styles.active : ""].join(" ")}
+            title={`${t("nav.shortcuts")} (?)`}
+            onClick={() => setDialog("shortcuts")}
+          >
+            <Icon name="keyboard" size={20} />
+            <span>{t("nav.shortcuts")}</span>
+          </button>
+          <button
+            className={[styles.railItem, dialog === "credits" ? styles.active : ""].join(" ")}
+            onClick={() => setDialog("credits")}
+          >
+            <Icon name="info" size={20} />
+            <span>{t("nav.credits")}</span>
+          </button>
         </nav>
 
         <aside className={styles.panel}>
@@ -202,17 +300,40 @@ export default function App() {
           <Icon name="shield" size={12} />
           {t("app.privacyNote")}
         </span>
-        <a
-          className={styles.credit}
-          href={AUTHOR.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          title={t("app.authorLinkTitle")}
-        >
-          <Icon name="github" size={11} />
-          {t("app.byAuthor", { author: AUTHOR.name })}
-        </a>
+        <button className={styles.footerHint} onClick={() => setDialog("shortcuts")}>
+          <Icon name="keyboard" size={12} />
+          {t("shortcuts.hint")}
+        </button>
       </footer>
+
+      {/* Hidden picker used by the Ctrl+O shortcut. */}
+      <input
+        ref={openInputRef}
+        type="file"
+        accept="application/pdf"
+        multiple
+        hidden
+        onChange={(e) => {
+          const files = Array.from(e.target.files ?? []);
+          if (files.length) void addFiles(files);
+          e.target.value = "";
+        }}
+      />
+
+      <Dialog
+        open={dialog === "credits"}
+        onClose={() => setDialog(null)}
+        title={t("credits.title")}
+      >
+        <CreditsContent />
+      </Dialog>
+      <Dialog
+        open={dialog === "shortcuts"}
+        onClose={() => setDialog(null)}
+        title={t("shortcuts.title")}
+      >
+        <ShortcutsContent />
+      </Dialog>
 
       {busy && (
         <div className={styles.overlay} role="status" aria-live="polite">
@@ -266,6 +387,11 @@ interface PanelCtx {
   hasSelection: boolean;
   addFiles: (files: File[]) => Promise<void>;
   extractSelection: () => Promise<void>;
+  extractRange: string;
+  setExtractRange: (value: string) => void;
+  selectRange: () => void;
+  canExtract: boolean;
+  exportPdf: () => Promise<void>;
   showError: (text: string) => void;
   showSuccess: (text: string) => void;
 }
@@ -290,6 +416,65 @@ function LanguageSwitch() {
         </button>
       ))}
     </div>
+  );
+}
+
+function CreditsContent() {
+  const { t } = useI18n();
+  return (
+    <div className={styles.credits}>
+      <div className={styles.creditsApp}>
+        <span className={styles.logo}>
+          <Icon name="logo" size={20} />
+        </span>
+        <div>
+          <strong>{t("app.name")}</strong>
+          <span>{t("credits.version", { version: __APP_VERSION__ })}</span>
+        </div>
+      </div>
+      <div className={styles.creditsAuthor}>
+        <span className={styles.creditsLabel}>{t("credits.createdBy")}</span>
+        <strong>{AUTHOR.name}</strong>
+        <a
+          href={AUTHOR.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={t("app.authorLinkTitle")}
+        >
+          <Icon name="github" size={14} />
+          {AUTHOR.url.replace(/^https:\/\//, "")}
+        </a>
+      </div>
+      <p>{t("credits.builtWith")}</p>
+      <p>{t("credits.licence")}</p>
+      <p className={styles.creditsPrivacy}>
+        <Icon name="shield" size={14} />
+        {t("app.privacyNote")}
+      </p>
+    </div>
+  );
+}
+
+function ShortcutsContent() {
+  const { t } = useI18n();
+  return (
+    <table className={styles.shortcuts}>
+      <tbody>
+        {SHORTCUT_LIST.map((s) => (
+          <tr key={s.label}>
+            <td>{t(s.label)}</td>
+            <td>
+              {s.keys.map((k, i) => (
+                <span key={k}>
+                  {i > 0 && " + "}
+                  <kbd>{keyLabel(k)}</kbd>
+                </span>
+              ))}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
@@ -328,7 +513,7 @@ function Home({ onFiles }: { onFiles: (files: File[]) => void }) {
   );
 }
 
-function Toolbar({ editor, hasSelection, extractSelection }: PanelCtx) {
+function Toolbar({ editor, hasSelection, extractSelection, canExtract }: PanelCtx) {
   const { t } = useI18n();
   const count = editor.pages.length;
   return (
@@ -344,12 +529,20 @@ function Toolbar({ editor, hasSelection, extractSelection }: PanelCtx) {
         )}
       </div>
       <div className={styles.toolbarActions}>
-        <button className="ghost" onClick={editor.selectAll}>
+        <button
+          className="ghost"
+          title={withKeys(t("toolbar.selectAll"), ["Mod", "A"])}
+          onClick={editor.selectAll}
+        >
           <Icon name="selectAll" size={16} />
           <span className={styles.hideNarrow}>{t("toolbar.selectAll")}</span>
         </button>
         {hasSelection && (
-          <button className="ghost" onClick={editor.clearSelection}>
+          <button
+            className="ghost"
+            title={withKeys(t("toolbar.clear"), ["Esc"])}
+            onClick={editor.clearSelection}
+          >
             <Icon name="close" size={16} />
             <span className={styles.hideNarrow}>{t("toolbar.clear")}</span>
           </button>
@@ -357,30 +550,40 @@ function Toolbar({ editor, hasSelection, extractSelection }: PanelCtx) {
         <span className={styles.divider} />
         <IconButton
           icon="rotateLeft"
-          label={t("pages.rotateLeft")}
+          label={withKeys(t("pages.rotateLeft"), ["Shift", "R"])}
           disabled={!hasSelection}
           onClick={() => editor.rotateSelected(-90)}
         />
         <IconButton
           icon="rotateRight"
-          label={t("pages.rotateRight")}
+          label={withKeys(t("pages.rotateRight"), ["R"])}
           disabled={!hasSelection}
           onClick={() => editor.rotateSelected(90)}
         />
         <IconButton
           icon="trash"
-          label={t("pages.delete")}
+          label={withKeys(t("pages.delete"), ["Del"])}
           danger
           disabled={!hasSelection}
           onClick={editor.deleteSelected}
         />
-        <button className="primary" disabled={!hasSelection} onClick={extractSelection}>
+        <button
+          className="primary"
+          disabled={!canExtract}
+          title={withKeys(t("pages.extraction"), ["Mod", "E"])}
+          onClick={extractSelection}
+        >
           <Icon name="extract" size={16} />
           {t("pages.extraction")}
         </button>
       </div>
     </div>
   );
+}
+
+/** "Rotate right" + ["R"] → "Rotate right (R)" for tooltips. */
+function withKeys(label: string, keys: string[]): string {
+  return `${label} (${keys.map(keyLabel).join("+")})`;
 }
 
 function IconButton({
@@ -432,21 +635,58 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 /* Tool panels                                                         */
 /* ------------------------------------------------------------------ */
 
-function PagesPanel({ editor, hasSelection, addFiles, extractSelection }: PanelCtx) {
+function PagesPanel({
+  editor,
+  hasPages,
+  hasSelection,
+  addFiles,
+  extractSelection,
+  extractRange,
+  setExtractRange,
+  selectRange,
+  canExtract,
+}: PanelCtx) {
   const { t } = useI18n();
+  const rangeId = useId();
   return (
     <>
       <PanelHeader title="pages.title" description="pages.description" />
-      <Section title={t("pages.edit")}>
+      <Section title={t("pages.extraction")}>
+        <div className={styles.field}>
+          <label htmlFor={rangeId}>{t("pages.rangeLabel")}</label>
+          <div className={styles.inputGroup}>
+            <input
+              id={rangeId}
+              type="text"
+              inputMode="numeric"
+              placeholder={t("pages.rangePlaceholder")}
+              value={extractRange}
+              onChange={(e) => setExtractRange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && canExtract) void extractSelection();
+              }}
+            />
+            <button
+              disabled={!hasPages || !extractRange.trim()}
+              title={t("pages.rangeSelectTitle")}
+              onClick={selectRange}
+            >
+              {t("pages.rangeSelect")}
+            </button>
+          </div>
+        </div>
         <button
           className="primary block"
-          disabled={!hasSelection}
+          disabled={!canExtract}
+          title={withKeys(t("pages.extraction"), ["Mod", "E"])}
           onClick={extractSelection}
         >
           <Icon name="extract" size={16} />
           {t("pages.extraction")}
         </button>
         <p>{t("pages.extractionHint")}</p>
+      </Section>
+      <Section title={t("pages.edit")}>
         <div className={styles.row}>
           <button disabled={!hasSelection} onClick={() => editor.rotateSelected(-90)}>
             <Icon name="rotateLeft" size={16} />
@@ -771,20 +1011,18 @@ function ConvertPanel({ run, assemble, baseName, hasPages }: PanelCtx) {
   );
 }
 
-function ExportPanel({ run, assemble, baseName, hasPages, showSuccess }: PanelCtx) {
+function ExportPanel({ hasPages, exportPdf }: PanelCtx) {
   const { t } = useI18n();
-  const doExport = () =>
-    run(t("busy.exporting"), async () => {
-      const bytes = await assemble();
-      const file = deriveName(baseName, "_edited");
-      downloadBytes(bytes, file);
-      showSuccess(t("notice.exported", { file }));
-    });
   return (
     <>
       <PanelHeader title="export.title" description="export.description" />
       <Section title={t("export.title")}>
-        <button className="primary block" disabled={!hasPages} onClick={doExport}>
+        <button
+          className="primary block"
+          disabled={!hasPages}
+          title={withKeys(t("export.button"), ["Mod", "S"])}
+          onClick={exportPdf}
+        >
           <Icon name="export" size={16} />
           {t("export.button")}
         </button>
