@@ -1,19 +1,77 @@
+/* ------------------------------------------------------------------ */
+/* Design tokens — light by default, dark when the OS prefers it.      */
+/* ------------------------------------------------------------------ */
 :root {
-  --bg: #0f1115;
-  --panel: #181b22;
-  --panel-2: #1f232c;
-  --border: #2a2f3a;
-  --text: #e6e8ec;
-  --muted: #9aa3b2;
-  --accent: #4c8dff;
-  --accent-2: #3a6fd0;
-  --danger: #e0564c;
-  --ok: #3fb27f;
-  --radius: 10px;
-  --shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --bg: #f4f5f9;
+  --surface: #ffffff;
+  --surface-2: #f8f9fc;
+  --surface-3: #eef0f6;
+  --border: #e2e5ee;
+  --border-strong: #cfd4e1;
+  --text: #151924;
+  --muted: #5c6477;
+  --faint: #8a91a3;
 
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  color-scheme: dark;
+  --accent: #5b4cf0;
+  --accent-hover: #4a3bdc;
+  --accent-soft: rgba(91, 76, 240, 0.1);
+  --accent-ring: rgba(91, 76, 240, 0.35);
+  --brand-gradient: linear-gradient(135deg, #ff6a55 0%, #e8457d 45%, #5b4cf0 100%);
+
+  --danger: #d93d3d;
+  --danger-soft: rgba(217, 61, 61, 0.1);
+  --ok: #1f9d5c;
+  --ok-soft: rgba(31, 157, 92, 0.12);
+  --word: #2b6cdf;
+  --excel: #1e8a4f;
+
+  --canvas: #eceef4;
+  --canvas-dot: rgba(21, 25, 36, 0.07);
+  --sheet-shadow: 0 1px 2px rgba(16, 24, 40, 0.08), 0 4px 12px rgba(16, 24, 40, 0.08);
+  --shadow: 0 10px 30px rgba(16, 24, 40, 0.14);
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+
+  font-family:
+    "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  color-scheme: light dark;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0d13;
+    --surface: #12151d;
+    --surface-2: #171b25;
+    --surface-3: #1e2330;
+    --border: #252b39;
+    --border-strong: #343c4e;
+    --text: #e9ebf2;
+    --muted: #9aa2b5;
+    --faint: #6d7588;
+
+    --accent: #7b6dff;
+    --accent-hover: #8d81ff;
+    --accent-soft: rgba(123, 109, 255, 0.16);
+    --accent-ring: rgba(123, 109, 255, 0.45);
+
+    --danger: #f06262;
+    --danger-soft: rgba(240, 98, 98, 0.14);
+    --ok: #3cc77f;
+    --ok-soft: rgba(60, 199, 127, 0.14);
+    --word: #5b93f5;
+    --excel: #3cbf76;
+
+    --canvas: #0e1118;
+    --canvas-dot: rgba(255, 255, 255, 0.05);
+    --sheet-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 16px rgba(0, 0, 0, 0.35);
+    --shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+  }
 }
 
 * {
@@ -32,19 +90,54 @@ body {
   color: var(--text);
 }
 
+h1,
+h2,
+h3 {
+  letter-spacing: -0.01em;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Buttons                                                             */
+/* ------------------------------------------------------------------ */
 button {
   font: inherit;
+  font-size: 0.86rem;
+  font-weight: 500;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
   border-radius: 8px;
   border: 1px solid var(--border);
-  background: var(--panel-2);
+  background: var(--surface);
   color: var(--text);
   padding: 0.5rem 0.85rem;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  line-height: 1.2;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.05s ease;
 }
 
 button:hover:not(:disabled) {
-  border-color: var(--accent);
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 button:disabled {
@@ -55,24 +148,96 @@ button:disabled {
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: white;
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.12), 0 4px 12px var(--accent-soft);
 }
 
 button.primary:hover:not(:disabled) {
-  background: var(--accent-2);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 button.danger:hover:not(:disabled) {
   border-color: var(--danger);
+  background: var(--danger-soft);
   color: var(--danger);
 }
 
+button.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+
+button.ghost:hover:not(:disabled) {
+  background: var(--surface-3);
+  border-color: transparent;
+  color: var(--text);
+}
+
+button.icon {
+  padding: 0.45rem;
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+
+button.icon:hover:not(:disabled) {
+  background: var(--surface-3);
+  border-color: transparent;
+  color: var(--text);
+}
+
+button.icon.danger:hover:not(:disabled) {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+button.block {
+  width: 100%;
+}
+
+/* ------------------------------------------------------------------ */
+/* Inputs                                                              */
+/* ------------------------------------------------------------------ */
 input[type="text"],
 input[type="number"] {
   font: inherit;
-  background: var(--bg);
+  font-size: 0.88rem;
+  width: 100%;
+  background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.4rem 0.6rem;
+  padding: 0.5rem 0.65rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ------------------------------------------------------------------ */
+/* Scrollbars                                                          */
+/* ------------------------------------------------------------------ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
 }

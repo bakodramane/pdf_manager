@@ -1,9 +1,28 @@
 "use strict";
-const { app, BrowserWindow, shell } = require("electron");
+const { app, BrowserWindow, nativeTheme, shell } = require("electron");
+const fs = require("fs");
 const path = require("path");
 
 const DEV_URL = "http://localhost:5173";
 const isDev = !app.isPackaged;
+const SUPPORTED_LANGS = ["en", "fr"];
+
+/**
+ * The NSIS installer writes the language the user picked during setup to
+ * `ui-language.txt` next to the executable (see build/installer.nsh). The
+ * renderer uses it as the default UI language until the user picks another
+ * one in the app. Portable builds have no such file and fall back to the
+ * operating-system language.
+ */
+function installerLanguage() {
+  try {
+    const file = path.join(path.dirname(process.execPath), "ui-language.txt");
+    const lang = fs.readFileSync(file, "utf8").trim().toLowerCase();
+    return SUPPORTED_LANGS.includes(lang) ? lang : null;
+  } catch {
+    return null;
+  }
+}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -12,7 +31,8 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     title: "PDF Manager",
-    backgroundColor: "#0f1115",
+    // Match the renderer's light/dark theme to avoid a flash on start-up.
+    backgroundColor: nativeTheme.shouldUseDarkColors ? "#0b0d13" : "#f4f5f9",
     webPreferences: {
       // Security hardening: no Node in renderer, full context isolation,
       // sandbox, no remote module.
@@ -39,8 +59,8 @@ function createWindow() {
     }
   });
 
-  // Open target="_blank" links in the OS browser, never in a new Electron
-  // window (there are none in this app, but be defensive).
+  // Open target="_blank" links (e.g. the author credit) in the OS browser,
+  // never in a new Electron window.
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith("https://") || url.startsWith("http://")) {
       setImmediate(() => shell.openExternal(url));
@@ -48,12 +68,16 @@ function createWindow() {
     return { action: "deny" };
   });
 
+  const lang = installerLanguage();
   if (isDev) {
-    win.loadURL(DEV_URL);
+    win.loadURL(lang ? `${DEV_URL}/?lang=${lang}` : DEV_URL);
     win.webContents.openDevTools({ mode: "detach" });
   } else {
     // Load the Vite-built app from the local filesystem.
-    win.loadFile(path.join(__dirname, "../dist/index.html"));
+    win.loadFile(
+      path.join(__dirname, "../dist/index.html"),
+      lang ? { query: { lang } } : undefined,
+    );
   }
 }
 

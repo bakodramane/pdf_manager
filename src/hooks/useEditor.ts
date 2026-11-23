@@ -31,8 +31,9 @@ export function useEditor() {
     [],
   );
 
-  const addFiles = useCallback(async (files: File[]): Promise<string[]> => {
-    const errors: string[] = [];
+  /** Load files and append their pages. Returns the errors (if any) per file. */
+  const addFiles = useCallback(async (files: File[]): Promise<unknown[]> => {
+    const errors: unknown[] = [];
     const newPages: PageRef[] = [];
     for (const file of files) {
       try {
@@ -40,7 +41,7 @@ export function useEditor() {
         sourcesRef.current.set(source.id, source);
         newPages.push(...srcPages);
       } catch (err) {
-        errors.push(err instanceof Error ? err.message : String(err));
+        errors.push(err);
       }
     }
     if (newPages.length > 0) {
@@ -99,7 +100,7 @@ export function useEditor() {
 
   /** Load another PDF and insert its pages after the given page index. */
   const insertFromFile = useCallback(
-    async (file: File, afterIndex: number): Promise<string | null> => {
+    async (file: File, afterIndex: number): Promise<unknown> => {
       try {
         const { source, pages: srcPages } = await loadPdfFile(file);
         sourcesRef.current.set(source.id, source);
@@ -107,7 +108,7 @@ export function useEditor() {
         setVersion((v) => v + 1);
         return null;
       } catch (err) {
-        return err instanceof Error ? err.message : String(err);
+        return err;
       }
     },
     [],
