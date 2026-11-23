@@ -18,6 +18,12 @@ describe("matchShortcut", () => {
     expect(matchShortcut(key("s", { ctrlKey: true }))).toBe("export");
   });
 
+  it("maps undo and both redo forms", () => {
+    expect(matchShortcut(key("z", { ctrlKey: true }))).toBe("undo");
+    expect(matchShortcut(key("y", { ctrlKey: true }))).toBe("redo");
+    expect(matchShortcut(key("Z", { metaKey: true, shiftKey: true }))).toBe("redo");
+  });
+
   it("maps single keys", () => {
     expect(matchShortcut(key("Escape"))).toBe("clearSelection");
     expect(matchShortcut(key("Delete"))).toBe("delete");

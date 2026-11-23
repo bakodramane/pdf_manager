@@ -28,6 +28,11 @@ previews. The Windows desktop app is packaged with Electron.
 - **Insert** pages from another PDF at a chosen position
 - **Export** the edited document, applying the current order, rotations, and
   deletions
+- **Undo / redo** every change to the document (up to 50 steps) with the ↶ ↷
+  buttons in the header, `Ctrl+Z` / `Ctrl+Y`, or the *Edit* menu. This covers
+  adding, deleting, rotating, reordering, inserting, *Keep only selected*,
+  annotating, and compressing. *Close document* starts afresh and clears the
+  history.
 
 ### Annotate
 - Add **text** at a chosen page and position (X/Y as fractions of the page)
@@ -53,21 +58,35 @@ use ⌘ in place of Ctrl.
 | Keys | Action |
 |------|--------|
 | `Ctrl` + `O` | Open or add a PDF |
+| `Ctrl` + `Z` | Undo the last change |
+| `Ctrl` + `Y` or `Ctrl` + `Shift` + `Z` | Redo |
 | `Ctrl` + `A` | Select all pages |
 | `Esc` | Clear the selection |
 | `R` | Rotate selected pages right |
 | `Shift` + `R` | Rotate selected pages left |
 | `Delete` / `Backspace` | Delete selected pages |
 | `Ctrl` + `E` | Extraction (page range or selected pages) |
-| `Ctrl` + `S` | Download the edited PDF |
+| `Ctrl` + `S` | Download the edited PDF (a "Saved" notice confirms it) |
 | `?` | Show the shortcut list |
 
 ### Credits
 
-The **Credits** item at the bottom of the left menu opens a box with the app
-version, the author (**Dramane Bako**, with a link to
-[github.com/bakodramane](https://github.com/bakodramane)), the libraries used,
-and the licence.
+The **Credits** item at the bottom of the left menu (and *Help → Credits* in
+the desktop app) opens a box with the app version, the author (**Dramane
+Bako**, with a link to [github.com/bakodramane](https://github.com/bakodramane)),
+the libraries used, and the licence.
+
+### Desktop window menu
+
+The desktop app has its own menu bar, in English or French to match the app
+(it switches with the **EN | FR** toggle):
+
+| Menu | Items |
+|------|-------|
+| File / Fichier | Open PDF… · Download edited PDF · Close document · Quit |
+| Edit / Édition | Undo · Redo · Cut · Copy · Paste |
+| View / Affichage | Actual size · Zoom in · Zoom out · Full screen |
+| Help / Aide | Keyboard shortcuts · Credits · Author's GitHub page |
 
 ### Languages (English / Français)
 - The **Windows installer** opens with a language dialog (pre-selected from
@@ -251,10 +270,14 @@ SmartScreen does not block the app permanently; it only asks once per executable
 | `sandbox` | `true` |
 | External navigation | blocked (`will-navigate`) |
 | New windows | denied; `https://` links (the author credit) open in the default browser |
+| Preload bridge | exposes one function, `window.pdfManager.setLanguage(lang)`, so the menu can follow the UI language; the main process only accepts `en`/`fr` from its own window |
 
-The renderer has no access to Node.js APIs. File exports use the in-browser
-Blob download — no native save dialog (avoids IPC complexity for a single-user
-private app).
+The renderer has no access to Node.js APIs. Menu commands reach the page as a
+`pdfmanager:menu` DOM event dispatched by the main process (with a user
+gesture, so *File → Open…* may open the file picker); only a fixed list of
+command names is ever sent. Menu shortcuts are shown but not registered, so
+each key press is handled once, by the page. File exports use the in-browser
+Blob download — no native save dialog.
 
 ## Architecture
 
@@ -280,11 +303,17 @@ src/
     index.ts           # language detection, translate(), useI18n()
     I18nProvider.tsx   # React provider + language persistence
   hooks/
-    useEditor.ts       # central editor state + actions
+    useEditor.ts       # central editor state + actions, with undo/redo
+    history.ts         # pure undo/redo history (tested)
+    shortcuts.ts       # key → action mapping (tested)
+    useShortcuts.ts    # window keyboard listener
   components/          # presentational React components + inline SVG icons
+  desktop.ts           # bridge to the Electron menu (no-op in the browser)
   App.tsx              # layout, tool panels, async/error orchestration
 electron/
   main.cjs             # window, security hardening, installer language
+  menu.cjs             # bilingual window menu template
+  preload.cjs          # exposes setLanguage() to the page, nothing else
 build/
   installer.nsh        # NSIS hook: saves the installer language for the app
 ```
@@ -336,7 +365,7 @@ and text uses the standard Helvetica font.
 - Optional OCR (e.g. tesseract.js) for scanned-PDF conversion
 - Text colour and header/footer detection in Word conversion
 - Per-page (not just whole-document) convert/compress
-- Undo/redo
+- A custom app icon (`build/icon.ico`) in place of the default Electron icon
 
 ## Author
 

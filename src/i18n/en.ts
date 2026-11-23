@@ -13,6 +13,8 @@ export const en = {
   "app.language": "Language",
   "app.authorLinkTitle": "Visit the author's GitHub page",
   "app.privacyNote": "Files never leave this device",
+  "app.undo": "Undo",
+  "app.redo": "Redo",
 
   // Navigation
   "nav.pages": "Pages",
@@ -34,6 +36,8 @@ export const en = {
   "credits.licence": "Released under the Apache License 2.0.",
   "shortcuts.title": "Keyboard shortcuts",
   "shortcuts.open": "Open or add a PDF",
+  "shortcuts.undo": "Undo the last change",
+  "shortcuts.redo": "Redo the change you undid",
   "shortcuts.selectAll": "Select all pages",
   "shortcuts.clear": "Clear the selection",
   "shortcuts.rotateRight": "Rotate selected pages right",

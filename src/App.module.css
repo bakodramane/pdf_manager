@@ -76,6 +76,14 @@
   flex: none;
 }
 
+.historyButtons {
+  display: flex;
+  gap: 0.15rem;
+  padding-right: 0.6rem;
+  margin-right: 0.1rem;
+  border-right: 1px solid var(--border);
+}
+
 .badge {
   display: inline-flex;
   align-items: center;

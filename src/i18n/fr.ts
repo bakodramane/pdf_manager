@@ -10,6 +10,8 @@ export const fr: Messages = {
   "app.language": "Langue",
   "app.authorLinkTitle": "Voir la page GitHub de l'auteur",
   "app.privacyNote": "Vos fichiers ne quittent jamais cet appareil",
+  "app.undo": "Annuler",
+  "app.redo": "Rétablir",
 
   // Navigation
   "nav.pages": "Pages",
@@ -31,6 +33,8 @@ export const fr: Messages = {
   "credits.licence": "Publié sous licence Apache 2.0.",
   "shortcuts.title": "Raccourcis clavier",
   "shortcuts.open": "Ouvrir ou ajouter un PDF",
+  "shortcuts.undo": "Annuler la dernière modification",
+  "shortcuts.redo": "Rétablir la modification annulée",
   "shortcuts.selectAll": "Sélectionner toutes les pages",
   "shortcuts.clear": "Effacer la sélection",
   "shortcuts.rotateRight": "Faire pivoter la sélection à droite",

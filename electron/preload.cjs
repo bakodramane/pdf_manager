@@ -1,6 +1,12 @@
 "use strict";
 // Preload script — runs in a sandboxed context with contextIsolation: true.
-// The renderer needs no Node.js APIs (the app is pure client-side), so
-// nothing is exposed through contextBridge. This file exists to satisfy
-// Electron's hard requirement that a preload path be specified when sandbox
-// is enabled.
+// It exposes exactly one function to the page: reporting the UI language so
+// the main process can show the window menu in the same language. Nothing
+// else (no Node.js, no generic IPC) is reachable from the renderer.
+const { contextBridge, ipcRenderer } = require("electron");
+
+contextBridge.exposeInMainWorld("pdfManager", {
+  setLanguage(lang) {
+    if (typeof lang === "string") ipcRenderer.send("app:set-language", lang);
+  },
+});

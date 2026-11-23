@@ -25,6 +25,7 @@ import { pdfToDocx, pdfToXlsx } from "./pdf/convert";
 import { AppError } from "./pdf/errors";
 import { LANGUAGES, useI18n, type Lang, type MessageKey } from "./i18n";
 import { AUTHOR } from "./about";
+import { onDesktopMenuCommand, setDesktopLanguage, type MenuCommand } from "./desktop";
 
 type Tab = "pages" | "merge" | "annotate" | "compress" | "convert" | "export";
 
@@ -41,7 +42,7 @@ type Notice = { kind: "error" | "success"; text: string };
 type DialogId = "credits" | "shortcuts";
 
 export default function App() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const editor = useEditor();
   const [tab, setTab] = useState<Tab>("pages");
   const [busy, setBusy] = useState<string | null>(null);
@@ -184,12 +185,42 @@ export default function App() {
       case "export":
         if (hasPages) void exportPdf();
         break;
+      case "undo":
+        editor.undo();
+        break;
+      case "redo":
+        editor.redo();
+        break;
       case "help":
         setDialog("shortcuts");
         break;
     }
   };
   useShortcuts(onShortcut, busy === null);
+
+  // Desktop window menu (Electron): keep its language in sync and run its
+  // commands. Ignored while an operation is in progress.
+  const menuHandler = useRef<(command: MenuCommand) => void>(() => undefined);
+  menuHandler.current = (command) => {
+    if (busy !== null) return;
+    switch (command) {
+      case "open":
+      case "export":
+      case "undo":
+      case "redo":
+        onShortcut(command);
+        break;
+      case "close":
+        editor.reset();
+        break;
+      case "shortcuts":
+      case "credits":
+        setDialog(command);
+        break;
+    }
+  };
+  useEffect(() => onDesktopMenuCommand((command) => menuHandler.current(command)), []);
+  useEffect(() => setDesktopLanguage(lang), [lang]);
   const ctx: PanelCtx = {
     editor,
     run,
@@ -221,6 +252,20 @@ export default function App() {
           </div>
         </div>
         <div className={styles.topActions}>
+          <div className={styles.historyButtons}>
+            <IconButton
+              icon="undo"
+              label={withKeys(t("app.undo"), ["Mod", "Z"])}
+              disabled={!editor.canUndo}
+              onClick={editor.undo}
+            />
+            <IconButton
+              icon="redo"
+              label={withKeys(t("app.redo"), ["Mod", "Y"])}
+              disabled={!editor.canRedo}
+              onClick={editor.redo}
+            />
+          </div>
           <span className={styles.badge}>
             <Icon name="shield" size={14} />
             {t("app.badge")}

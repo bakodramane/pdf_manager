@@ -1,11 +1,17 @@
 "use strict";
-const { app, BrowserWindow, nativeTheme, shell } = require("electron");
+const { app, BrowserWindow, Menu, ipcMain, nativeTheme, shell } = require("electron");
 const fs = require("fs");
 const path = require("path");
+const { buildMenuTemplate, MENU_COMMANDS } = require("./menu.cjs");
 
 const DEV_URL = "http://localhost:5173";
 const isDev = !app.isPackaged;
 const SUPPORTED_LANGS = ["en", "fr"];
+const AUTHOR_URL = "https://github.com/bakodramane";
+const isMac = process.platform === "darwin";
+
+/** Language of the window menu; follows the app's UI language. */
+let menuLang = "en";
 
 /**
  * The NSIS installer writes the language the user picked during setup to
@@ -23,6 +29,45 @@ function installerLanguage() {
     return null;
   }
 }
+
+/**
+ * Run a menu command in the renderer. It is delivered as a DOM event via
+ * executeJavaScript with `userGesture = true`, so commands such as "Open…"
+ * may open the file picker (browsers only allow that after user input).
+ * `command` comes from the fixed MENU_COMMANDS list, never from the page.
+ */
+function sendMenuCommand(command, win) {
+  const target = win || BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+  if (!target || !MENU_COMMANDS.includes(command)) return;
+  const detail = JSON.stringify(command);
+  target.webContents
+    .executeJavaScript(
+      `window.dispatchEvent(new CustomEvent("pdfmanager:menu", { detail: ${detail} }))`,
+      true,
+    )
+    .catch(() => undefined);
+}
+
+function applyMenu(lang) {
+  menuLang = lang;
+  const template = buildMenuTemplate(lang, {
+    isDev,
+    isMac,
+    send: sendMenuCommand,
+    openAuthorPage: () => shell.openExternal(AUTHOR_URL),
+  });
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+// The renderer reports its UI language (on start-up and whenever the user
+// switches), so the menu always matches the app.
+ipcMain.on("app:set-language", (event, lang) => {
+  const fromOurWindow = BrowserWindow.getAllWindows().some(
+    (w) => w.webContents === event.sender,
+  );
+  if (!fromOurWindow || !SUPPORTED_LANGS.includes(lang) || lang === menuLang) return;
+  applyMenu(lang);
+});
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -82,6 +127,10 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Start with the installer's language (or the OS language) until the
+  // renderer reports the language it actually shows.
+  const osLang = app.getLocale().toLowerCase().startsWith("fr") ? "fr" : "en";
+  applyMenu(installerLanguage() || osLang);
   createWindow();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

@@ -9,6 +9,8 @@ export type ShortcutAction =
   | "rotateLeft"
   | "extract"
   | "export"
+  | "undo"
+  | "redo"
   | "help";
 
 /** The subset of KeyboardEvent the matcher needs (easy to fake in tests). */
@@ -29,7 +31,9 @@ export function matchShortcut(e: KeyLike): ShortcutAction | null {
   const mod = e.ctrlKey || e.metaKey;
   const key = e.key.toLowerCase();
   if (mod) {
-    if (e.shiftKey) return null;
+    if (e.shiftKey) return key === "z" ? "redo" : null;
+    if (key === "z") return "undo";
+    if (key === "y") return "redo";
     if (key === "o") return "open";
     if (key === "a") return "selectAll";
     if (key === "e") return "extract";
@@ -46,6 +50,8 @@ export function matchShortcut(e: KeyLike): ShortcutAction | null {
 /** Shortcut list for the help dialog, in display order. */
 export const SHORTCUT_LIST: { keys: string[]; label: MessageKey }[] = [
   { keys: ["Mod", "O"], label: "shortcuts.open" },
+  { keys: ["Mod", "Z"], label: "shortcuts.undo" },
+  { keys: ["Mod", "Y"], label: "shortcuts.redo" },
   { keys: ["Mod", "A"], label: "shortcuts.selectAll" },
   { keys: ["Esc"], label: "shortcuts.clear" },
   { keys: ["R"], label: "shortcuts.rotateRight" },
