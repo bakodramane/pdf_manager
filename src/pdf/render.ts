@@ -2,7 +2,7 @@ import * as pdfjs from "pdfjs-dist";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 // Worker bundle is resolved by Vite to a local hashed URL; runs off the main
 // thread for large files.
-import workerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
+import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 

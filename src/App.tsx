@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import type { PDFDocumentProxy } from "pdfjs-dist";
 import styles from "./App.module.css";
 import { useEditor } from "./hooks/useEditor";
 import { FileDrop } from "./components/FileDrop";
@@ -7,7 +8,7 @@ import { assemblePdf, deriveName, downloadBytes } from "./pdf/assemble";
 import { splitIntoRanges } from "./pdf/operations";
 import { compressPdf } from "./pdf/compress";
 import { applyImageOverlay, applyTextOverlay } from "./pdf/overlay";
-import { getRenderDoc } from "./pdf/render";
+import { dropRenderDoc, getRenderDoc } from "./pdf/render";
 import { pdfToDocx, pdfToXlsx } from "./pdf/convert";
 
 type Tab = "pages" | "merge" | "annotate" | "compress" | "convert" | "export";
@@ -35,11 +36,14 @@ export default function App() {
 
   /** Run an async action with a global loading state + error capture. */
   const run = useCallback(
-    async (label: string, fn: () => Promise<void>) => {
+    async (
+      label: string,
+      fn: (setStatus: (status: string) => void) => Promise<void>,
+    ) => {
       setError(null);
       setBusy(label);
       try {
-        await fn();
+        await fn((status) => setBusy(status));
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {
@@ -173,7 +177,10 @@ export default function App() {
 }
 
 type EditorApi = ReturnType<typeof useEditor>;
-type RunFn = (label: string, fn: () => Promise<void>) => Promise<void>;
+type RunFn = (
+  label: string,
+  fn: (setStatus: (status: string) => void) => Promise<void>,
+) => Promise<void>;
 type AssembleFn = () => Promise<Uint8Array>;
 
 function PagesPanel({
@@ -499,11 +506,27 @@ function ConvertPanel({
   baseName: string;
   hasPages: boolean;
 }) {
+  /** Open a temporary PDF.js document, run `fn`, and always release it. */
+  const withTempDoc = async <T,>(
+    bytes: Uint8Array,
+    fn: (doc: PDFDocumentProxy) => Promise<T>,
+  ): Promise<T> => {
+    const id = "convert-tmp-" + Date.now();
+    try {
+      return await fn(await getRenderDoc(id, bytes));
+    } finally {
+      dropRenderDoc(id);
+    }
+  };
+
   const toWord = () =>
-    run("Converting to Word…", async () => {
+    run("Converting to Word…", async (setStatus) => {
       const bytes = await assemble();
-      const doc = await getRenderDoc("convert-tmp-" + Date.now(), bytes);
-      const out = await pdfToDocx(doc);
+      const out = await withTempDoc(bytes, (doc) =>
+        pdfToDocx(doc, (done, total) =>
+          setStatus(`Converting to Word… page ${done} of ${total}`),
+        ),
+      );
       downloadBytes(
         out,
         deriveName(baseName, "", "docx"),
@@ -512,10 +535,13 @@ function ConvertPanel({
     });
 
   const toExcel = () =>
-    run("Converting to Excel…", async () => {
+    run("Converting to Excel…", async (setStatus) => {
       const bytes = await assemble();
-      const doc = await getRenderDoc("convert-tmp-" + Date.now(), bytes);
-      const out = await pdfToXlsx(doc);
+      const out = await withTempDoc(bytes, (doc) =>
+        pdfToXlsx(doc, (done, total) =>
+          setStatus(`Converting to Excel… page ${done} of ${total}`),
+        ),
+      );
       downloadBytes(
         out,
         deriveName(baseName, "", "xlsx"),
@@ -535,8 +561,8 @@ function ConvertPanel({
         </button>
       </div>
       <p>
-        Text-layer extraction only. No OCR, layout, fonts, or images are
-        preserved. Scanned PDFs produce little or nothing. See README.
+        Keeps headings, fonts, tables and images. Excel gets one sheet per page
+        with numbers as real numbers. No OCR for scanned PDFs. See README.
       </p>
     </div>
   );

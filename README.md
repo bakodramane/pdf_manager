@@ -28,7 +28,12 @@ previews.
 - Re-packs the PDF structure using object streams
 
 ### Convert
-- **PDF → Word (.docx)** and **PDF → Excel (.xlsx)** via text-layer extraction
+- **PDF → Word (.docx)**: one Word page per PDF page (same size, orientation
+  and margins), with paragraphs, headings, fonts, bold/italic, alignment,
+  indentation, spacing, tables (incl. merged cells and shading) and images
+- **PDF → Excel (.xlsx)**: one sheet per page; tables become real cell grids
+  with merged cells, borders and shading, and numbers (`1,234.50`, `(15)`,
+  `12%`, `$9.99`, `1 234,56`) are stored as numbers with a matching format
 
 ## Desktop builds (Electron)
 
@@ -43,12 +48,23 @@ npm run dist:portable    # portable .exe only
 npm run dist:installer   # NSIS installer only
 ```
 
-Artifacts land in `release/`:
+Artifacts land in `release/`, which is **git-ignored**: the installers are
+around 90–100 MB and the unpacked Electron binary is over 200 MB, above
+GitHub's 100 MB per-file limit. To distribute them, attach the `.exe` files to a
+[GitHub Release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
+(assets can be up to 2 GB) instead of committing them:
+
+```bash
+gh release create v0.1.0 "release/PDF Manager-0.1.0-portable.exe" "release/PDF Manager-0.1.0-Setup.exe"
+```
+
+The build keeps only the en-US and fr Chromium locale packs, strips source
+maps, and uses maximum compression to keep the artifacts small.
 
 | File | Type | Size (approx.) |
 |------|------|----------------|
-| `PDF Manager-0.1.0-portable.exe` | Portable single-file | ~89 MB |
-| `PDF Manager-0.1.0-Setup.exe`    | Per-user NSIS installer | ~100 MB |
+| `PDF Manager-0.1.0-portable.exe` | Portable single-file | ~82 MB |
+| `PDF Manager-0.1.0-Setup.exe`    | Per-user NSIS installer | ~82 MB |
 
 ### Portable .exe
 
@@ -141,7 +157,9 @@ src/
     render.ts          # page rendering via PDF.js (web worker)
     overlay.ts         # text + image/signature overlay
     compress.ts        # object-stream re-packing
-    convert.ts         # PDF → docx / xlsx (lazy-loaded)
+    extract.ts         # PDF.js page → text chunks, ruling lines, fills, images
+    layout.ts          # layout analysis: lines, paragraphs, tables (pure, tested)
+    convert.ts         # layout → docx / xlsx writers (lazy-loaded)
     *.test.ts          # unit tests
   hooks/
     useEditor.ts       # central editor state + actions
@@ -164,17 +182,20 @@ immutable array operations; the output is rebuilt with pdf-lib only on export.
 ## Known limitations
 
 ### Conversion is NOT lossless
-PDF → Word/Excel uses **text-layer extraction only**. This is a hard limit of
-browser-only conversion:
+PDF has no notion of paragraphs or tables, so conversion reconstructs them from
+the page layout:
 
-- **No OCR.** Scanned or image-only PDFs (no embedded text) produce little or
-  nothing.
-- **No layout fidelity.** Fonts, colors, images, columns, and exact positioning
-  are not preserved. Word output is plain paragraphs grouped by visual lines.
-- **Excel columns are inferred** by clustering text x-positions — good for
-  genuinely tabular PDFs, rough for free-form prose (which lands in column A).
-
-Treat conversion as "get the text out in a usable form," not a faithful copy.
+- **Tables** are found two ways: from the PDF's drawn ruling lines (bordered
+  tables, with merged cells and cell shading), and from vertical whitespace
+  alignment (borderless tables). Unusual tables — e.g. ones drawn only with
+  background colours, or with heavily wrapped cells — may come out as text.
+- **Text** is grouped into paragraphs using line spacing, indentation and line
+  length; two-column pages are read column by column. Fonts are mapped to
+  their family name (Word substitutes any font that isn't installed).
+- **Not reproduced:** text colour, vector drawings and charts, diagonal or
+  vertical text, headers/footers as Word header/footer parts.
+- **No OCR.** Scanned pages come through as images in Word and as empty
+  sheets in Excel.
 
 ### Compression
 pdf-lib cannot re-encode embedded images. Compression re-packs the document
@@ -191,6 +212,7 @@ and text uses the standard Helvetica font.
 - On-canvas drag placement for annotations and signatures
 - Real image down-sampling for stronger compression
 - Optional OCR (e.g. tesseract.js) for scanned-PDF conversion
+- Text colour and header/footer detection in Word conversion
 - Per-page (not just whole-document) convert/compress
 - Keyboard shortcuts and undo/redo
 

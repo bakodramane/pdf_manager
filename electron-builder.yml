@@ -10,6 +10,17 @@ directories:
 files:
   - dist/**/*          # built web assets (Vite output)
   - electron/**/*      # main + preload scripts
+  - "!**/*.map"        # never ship source maps
+
+# Size: Chromium ships ~55 UI locale packs (~45 MB unpacked). The app's UI is
+# its own, so only Chromium's built-in strings (context menus, dialogs) use
+# these; keep English and French.
+electronLanguages:
+  - en-US
+  - fr
+
+# Smaller installer/portable at the cost of a slower build.
+compression: maximum
 
 # Electron main entry — must match package.json "main".
 # electron-builder reads this field automatically from package.json.

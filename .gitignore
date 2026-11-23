@@ -5,3 +5,10 @@ dist-ssr
 .DS_Store
 *.log
 coverage
+
+# Electron build output (installers/exes are far above GitHub's 100 MB limit;
+# publish them as GitHub Release assets instead of committing them)
+release/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
