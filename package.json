@@ -3,8 +3,12 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Private local-only PDF editor",
-  "author": "bakodramane",
+  "description": "Private, local-only PDF editor by Dramane Bako",
+  "author": {
+    "name": "D.Bako",
+    "url": "https://github.com/bakodramane"
+  },
+  "homepage": "https://github.com/bakodramane/pdf_manager",
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",

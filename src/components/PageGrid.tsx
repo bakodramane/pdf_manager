@@ -22,6 +22,12 @@ export function PageGrid({
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
 
+  const endDrag = () => {
+    dragFrom.current = null;
+    setDragIndex(null);
+    setOverIndex(null);
+  };
+
   return (
     <div className={styles.grid}>
       {pages.map((page, index) => (
@@ -31,7 +37,8 @@ export function PageGrid({
           index={index}
           source={getSource(page.sourceId)}
           selected={selected.has(page.id)}
-          dragging={dragIndex === index || overIndex === index}
+          dragging={dragIndex === index}
+          dropTarget={dragIndex !== null && overIndex === index && dragIndex !== index}
           onToggle={onToggle}
           onDragStart={(i) => {
             dragFrom.current = i;
@@ -43,10 +50,9 @@ export function PageGrid({
             if (from !== null && overIndex !== null && from !== overIndex) {
               onReorder(from, overIndex);
             }
-            dragFrom.current = null;
-            setDragIndex(null);
-            setOverIndex(null);
+            endDrag();
           }}
+          onDragEnd={endDrag}
         />
       ))}
     </div>

@@ -1,5 +1,10 @@
 appId: com.local.pdfmanager
 productName: PDF Manager
+# Copyright line shown in the .exe "Details" tab.
+copyright: "Copyright © 2026 Dramane Bako"
+# The publisher name ("D.Bako") comes from package.json "author.name": it is
+# shown as Publisher in Apps & features, as Company in the .exe details, and
+# names the Start Menu folder (menuCategory: true below).
 
 # Point electron-builder at the Electron entry scripts, not the web source.
 directories:
@@ -53,6 +58,15 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   artifactName: "${productName}-${version}-Setup.exe"
+  # Bilingual installer: a language dialog (pre-selected from the Windows
+  # display language) lets the user install in English or French. The choice
+  # is also saved for the app itself by build/installer.nsh.
+  installerLanguages:
+    - en_US
+    - fr_FR
+  multiLanguageInstaller: true
+  displayLanguageSelector: true
+  include: build/installer.nsh
 
 # Disable auto-update entirely — offline private app, no publish target.
 publish: null

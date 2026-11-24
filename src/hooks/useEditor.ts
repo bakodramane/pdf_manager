@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { loadPdfFile, makeId } from "../pdf/loader";
 import type { PageRef, PdfSource } from "../pdf/types";
 import {
@@ -9,46 +9,87 @@ import {
   rotatePages,
 } from "../pdf/operations";
 import { dropRenderDoc } from "../pdf/render";
+import {
+  createHistory,
+  pushHistory,
+  redoHistory,
+  undoHistory,
+  type History,
+} from "./history";
 
-export interface EditorState {
-  sources: Map<string, PdfSource>;
-  pages: PageRef[];
-  selected: Set<string>;
+/** Two page lists are the same edit state if they hold the same refs in order. */
+function samePages(a: PageRef[], b: PageRef[]): boolean {
+  return a.length === b.length && a.every((p, i) => p === b[i]);
 }
 
 /**
- * Central editor state + actions. Keeps the source registry and the working
- * page order; all PDF byte work lives in the ./pdf modules.
+ * Central editor state + actions, with undo/redo.
+ *
+ * The document is an ordered list of page references; every edit pushes a
+ * new list onto the history. Loaded source PDFs live in a registry keyed by
+ * id. Sources stay registered while any undo/redo step still uses them, and
+ * are released (bytes and PDF.js render cache) once none does.
  */
 export function useEditor() {
   const sourcesRef = useRef(new Map<string, PdfSource>());
-  const [pages, setPages] = useState<PageRef[]>([]);
+  const [history, setHistory] = useState<History<PageRef[]>>(() => createHistory([]));
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [version, setVersion] = useState(0); // bumped when sources change
+  const pages = history.present;
 
-  const getSource = useCallback(
-    (id: string) => sourcesRef.current.get(id),
-    [],
-  );
+  const getSource = useCallback((id: string) => sourcesRef.current.get(id), []);
 
-  const addFiles = useCallback(async (files: File[]): Promise<string[]> => {
-    const errors: string[] = [];
-    const newPages: PageRef[] = [];
-    for (const file of files) {
-      try {
-        const { source, pages: srcPages } = await loadPdfFile(file);
-        sourcesRef.current.set(source.id, source);
-        newPages.push(...srcPages);
-      } catch (err) {
-        errors.push(err instanceof Error ? err.message : String(err));
-      }
-    }
-    if (newPages.length > 0) {
-      setPages((prev) => [...prev, ...newPages]);
-      setVersion((v) => v + 1);
-    }
-    return errors;
+  /** Apply an edit to the page list as one undoable step. */
+  const commit = useCallback((edit: (prev: PageRef[]) => PageRef[]) => {
+    setHistory((h) => pushHistory(h, edit(h.present), samePages));
   }, []);
+
+  // Keep the selection limited to pages that exist after any change
+  // (including undo/redo).
+  useEffect(() => {
+    const live = new Set(pages.map((p) => p.id));
+    setSelected((prev) => {
+      const next = new Set([...prev].filter((id) => live.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [pages]);
+
+  // Release sources no history step refers to, and the render cache of
+  // sources not on screen (it is rebuilt on demand after an undo).
+  useEffect(() => {
+    const onScreen = new Set(history.present.map((p) => p.sourceId));
+    const used = new Set(onScreen);
+    for (const step of [...history.past, ...history.future]) {
+      for (const p of step) used.add(p.sourceId);
+    }
+    for (const id of [...sourcesRef.current.keys()]) {
+      if (!onScreen.has(id)) dropRenderDoc(id);
+      if (!used.has(id)) sourcesRef.current.delete(id);
+    }
+  }, [history]);
+
+  /** Load files and append their pages. Returns the errors (if any) per file. */
+  const addFiles = useCallback(
+    async (files: File[]): Promise<unknown[]> => {
+      const errors: unknown[] = [];
+      const loaded: { source: PdfSource; pages: PageRef[] }[] = [];
+      for (const file of files) {
+        try {
+          loaded.push(await loadPdfFile(file));
+        } catch (err) {
+          errors.push(err);
+        }
+      }
+      if (loaded.length > 0) {
+        // Register and commit in one synchronous step, so the clean-up effect
+        // never sees a registered source that no page refers to yet.
+        for (const { source } of loaded) sourcesRef.current.set(source.id, source);
+        const newPages = loaded.flatMap((l) => l.pages);
+        commit((prev) => [...prev, ...newPages]);
+      }
+      return errors;
+    },
+    [commit],
+  );
 
   const clearSelection = useCallback(() => setSelected(new Set()), []);
 
@@ -65,95 +106,96 @@ export function useEditor() {
     setSelected(new Set(pages.map((p) => p.id)));
   }, [pages]);
 
-  const pruneSelection = useCallback((nextPages: PageRef[]) => {
-    const live = new Set(nextPages.map((p) => p.id));
-    setSelected((prev) => new Set([...prev].filter((id) => live.has(id))));
+  /** Replace the selection with the given page ids. */
+  const selectPages = useCallback((ids: string[]) => {
+    setSelected(new Set(ids));
   }, []);
 
   const deleteSelected = useCallback(() => {
-    setPages((prev) => {
-      const next = deletePages(prev, selected);
-      return next;
-    });
+    if (selected.size === 0) return;
+    commit((prev) => deletePages(prev, selected));
     setSelected(new Set());
-  }, [selected]);
+  }, [selected, commit]);
 
   const rotateSelected = useCallback(
     (delta: number) => {
-      setPages((prev) => rotatePages(prev, selected, delta));
+      if (selected.size === 0) return;
+      commit((prev) => rotatePages(prev, selected, delta));
     },
-    [selected],
+    [selected, commit],
   );
 
+  /** Keep only the selected pages. */
   const extractSelected = useCallback(() => {
-    setPages((prev) => {
-      const next = extractPages(prev, selected);
-      pruneSelection(next);
-      return next;
-    });
-  }, [selected, pruneSelection]);
+    if (selected.size === 0) return;
+    commit((prev) => extractPages(prev, selected));
+  }, [selected, commit]);
 
-  const reorder = useCallback((from: number, to: number) => {
-    setPages((prev) => movePage(prev, from, to));
-  }, []);
+  const reorder = useCallback(
+    (from: number, to: number) => commit((prev) => movePage(prev, from, to)),
+    [commit],
+  );
 
   /** Load another PDF and insert its pages after the given page index. */
   const insertFromFile = useCallback(
-    async (file: File, afterIndex: number): Promise<string | null> => {
+    async (file: File, afterIndex: number): Promise<unknown> => {
       try {
         const { source, pages: srcPages } = await loadPdfFile(file);
         sourcesRef.current.set(source.id, source);
-        setPages((prev) => insertPages(prev, srcPages, afterIndex));
-        setVersion((v) => v + 1);
+        commit((prev) => insertPages(prev, srcPages, afterIndex));
         return null;
       } catch (err) {
-        return err instanceof Error ? err.message : String(err);
+        return err;
       }
     },
-    [],
+    [commit],
   );
 
   /**
-   * Replace the entire working document with a single new source built from
-   * raw bytes (used after overlay/compress so further edits stay consistent).
+   * Replace the working document with a single new source built from raw
+   * bytes (used after annotate/compress so further edits stay consistent).
+   * Undo brings the previous pages back.
    */
   const replaceWithBytes = useCallback(
     (bytes: Uint8Array, name: string, pageCount: number) => {
-      // Drop old render docs to free memory.
-      for (const id of sourcesRef.current.keys()) dropRenderDoc(id);
       const id = makeId("src");
-      const source: PdfSource = { id, name, bytes, pageCount };
-      sourcesRef.current = new Map([[id, source]]);
+      sourcesRef.current.set(id, { id, name, bytes, pageCount });
       const newPages: PageRef[] = Array.from({ length: pageCount }, (_, i) => ({
         id: makeId("pg"),
         sourceId: id,
         pageIndex: i,
         rotation: 0,
       }));
-      setPages(newPages);
+      commit(() => newPages);
       setSelected(new Set());
-      setVersion((v) => v + 1);
     },
-    [],
+    [commit],
   );
 
+  const undo = useCallback(() => setHistory(undoHistory), []);
+  const redo = useCallback(() => setHistory(redoHistory), []);
+
+  /** Close the document: clears pages, history, and all loaded sources. */
   const reset = useCallback(() => {
     for (const id of sourcesRef.current.keys()) dropRenderDoc(id);
     sourcesRef.current = new Map();
-    setPages([]);
+    setHistory(createHistory([]));
     setSelected(new Set());
-    setVersion((v) => v + 1);
   }, []);
 
   return {
     pages,
     selected,
-    version,
     getSource,
+    canUndo: history.past.length > 0,
+    canRedo: history.future.length > 0,
+    undo,
+    redo,
     addFiles,
     toggleSelect,
     clearSelection,
     selectAll,
+    selectPages,
     deleteSelected,
     rotateSelected,
     extractSelected,

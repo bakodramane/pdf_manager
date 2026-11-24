@@ -1,24 +1,38 @@
 # PDF Manager
 
-A private, **100% client-side** PDF editor. Everything runs in your browser —
-no backend, no network calls, no telemetry. Your files never leave your machine.
+A private, **100% client-side** PDF editor, available in **English and French**.
+Everything runs on your device — no backend, no network calls, no telemetry.
+Your files never leave your machine.
+
+Created by **[Dramane Bako](https://github.com/bakodramane)**.
 
 Built with Vite + React + TypeScript, [pdf-lib](https://pdf-lib.js.org/) for PDF
 manipulation, and [PDF.js](https://mozilla.github.io/pdf.js/) for rendering page
-previews.
+previews. The Windows desktop app is packaged with Electron.
 
 ## Features
 
 ### Page editing
 - Open one or more PDFs (drag-and-drop or browse) and preview pages in a
   thumbnail grid
-- **Select** pages, **delete**, **rotate** (left/right), **extract** (keep only
-  selected), and **reorder** by dragging thumbnails
+- **Select** pages, **rotate** (left/right), **delete**, and **reorder** them by
+  dragging thumbnails
+- **Extraction**: save pages as a new PDF (`<name>_extraction.pdf`) while the
+  current document stays unchanged. Either type pages and ranges in the
+  *Pages to extract* box — `1-3, 7`, `10-` (to the end), `-4` (from the
+  start), `5-2` (reversed) — or leave it empty to use the pages selected in
+  the grid. **Select** highlights the typed pages in the grid first.
+- **Keep only selected**: drop every page that is not selected
 - **Merge** multiple PDFs (added files are appended to the working document)
 - **Split** a PDF at chosen page boundaries (each part downloads separately)
 - **Insert** pages from another PDF at a chosen position
 - **Export** the edited document, applying the current order, rotations, and
   deletions
+- **Undo / redo** every change to the document (up to 50 steps) with the ↶ ↷
+  buttons in the header, `Ctrl+Z` / `Ctrl+Y`, or the *Edit* menu. This covers
+  adding, deleting, rotating, reordering, inserting, *Keep only selected*,
+  annotating, and compressing. *Close document* starts afresh and clears the
+  history.
 
 ### Annotate
 - Add **text** at a chosen page and position (X/Y as fractions of the page)
@@ -28,43 +42,196 @@ previews.
 - Re-packs the PDF structure using object streams
 
 ### Convert
-- **PDF → Word (.docx)**: one Word page per PDF page (same size, orientation
+- **PDF → Word (.docx)**: one Word page per PDF page (same size, orientation,
   and margins), with paragraphs, headings, fonts, bold/italic, alignment,
-  indentation, spacing, tables (incl. merged cells and shading) and images
+  indentation, spacing, tables (incl. merged cells and shading), and images
 - **PDF → Excel (.xlsx)**: one sheet per page; tables become real cell grids
-  with merged cells, borders and shading, and numbers (`1,234.50`, `(15)`,
+  with merged cells, borders, and shading, and numbers (`1,234.50`, `(15)`,
   `12%`, `$9.99`, `1 234,56`) are stored as numbers with a matching format
 
-## Desktop builds (Electron)
+### Keyboard shortcuts
 
-The app ships as two Windows artifacts built with [electron-builder](https://www.electron.build/).
-Both run **without administrator rights** and make **zero network calls** at runtime.
+Press **?** in the app (or click **Keyboard shortcuts** in the left menu) to
+see this list. Shortcuts are ignored while typing in a text box. On macOS,
+use ⌘ in place of Ctrl.
 
-### Build the artifacts
+| Keys | Action |
+|------|--------|
+| `Ctrl` + `O` | Open or add a PDF |
+| `Ctrl` + `Z` | Undo the last change |
+| `Ctrl` + `Y` or `Ctrl` + `Shift` + `Z` | Redo |
+| `Ctrl` + `A` | Select all pages |
+| `Esc` | Clear the selection |
+| `R` | Rotate selected pages right |
+| `Shift` + `R` | Rotate selected pages left |
+| `Delete` / `Backspace` | Delete selected pages |
+| `Ctrl` + `E` | Extraction (page range or selected pages) |
+| `Ctrl` + `S` | Download the edited PDF (a "Saved" notice confirms it) |
+| `?` | Show the shortcut list |
+
+### Credits
+
+The **Credits** item at the bottom of the left menu (and *Help → Credits* in
+the desktop app) opens a box with the app version, the author (**Dramane
+Bako**, with a link to [github.com/bakodramane](https://github.com/bakodramane)),
+the libraries used, and the licence.
+
+### Desktop window menu
+
+The desktop app has its own menu bar, in English or French to match the app
+(it switches with the **EN | FR** toggle):
+
+| Menu | Items |
+|------|-------|
+| File / Fichier | Open PDF… · Download edited PDF · Close document · Quit |
+| Edit / Édition | Undo · Redo · Cut · Copy · Paste |
+| View / Affichage | Actual size · Zoom in · Zoom out · Full screen |
+| Help / Aide | Keyboard shortcuts · Credits · Author's GitHub page |
+
+### Languages (English / Français)
+- The **Windows installer** opens with a language dialog (pre-selected from
+  the Windows display language) so you can install in **English or French**.
+- The app opens in the language chosen during installation. Without an
+  installer choice (portable build, browser), it follows the operating-system
+  language.
+- Switch at any time with the **EN | FR** toggle in the top-right corner; the
+  choice is remembered.
+
+---
+
+## Building the app from source
+
+### 1. Prerequisites
+
+| Tool | Version | Check with |
+|------|---------|------------|
+| [Node.js](https://nodejs.org/) (includes npm) | 20 LTS or 22 LTS | `node -v` and `npm -v` |
+| [Git](https://git-scm.com/) | any recent version | `git --version` |
+| Windows | 10 or 11 (x64), to build the Windows `.exe` files | — |
+
+Building the Windows installers on Linux or macOS also works, but requires
+[Wine](https://www.winehq.org/); building on Windows is the simplest route.
+
+### 2. Get the code and install dependencies
 
 ```bash
-npm run dist             # builds both portable + installer in one pass
+git clone https://github.com/bakodramane/pdf_manager.git
+cd pdf_manager
+npm ci
+```
+
+`npm ci` installs the exact versions pinned in `package-lock.json` (including
+the Electron binary, about 100 MB, downloaded once). Use `npm install` instead
+if you intend to change dependencies.
+
+> **Windows PowerShell tip:** if PowerShell refuses to run `npm` with a
+> "running scripts is disabled" error, use `npm.cmd` in place of `npm`
+> (for example `npm.cmd ci`), or run the commands from *Command Prompt*.
+
+### 3. Check that everything works (optional but recommended)
+
+```bash
+npm run typecheck
+npm run lint
+npm test
+```
+
+### 4. Try the app before packaging it
+
+```bash
+npm run dev            # in the browser: open the printed http://localhost:5173 URL
+npm run electron:dev   # as a desktop window (Vite dev server + Electron)
+```
+
+Stop either with `Ctrl+C`.
+
+### 5. Build the Windows desktop app
+
+```bash
+npm run dist             # builds the installer and the portable .exe in one pass
+npm run dist:installer   # bilingual (EN/FR) NSIS installer only
 npm run dist:portable    # portable .exe only
-npm run dist:installer   # NSIS installer only
 ```
 
-Artifacts land in `release/`, which is **git-ignored**: the installers are
-around 90–100 MB and the unpacked Electron binary is over 200 MB, above
-GitHub's 100 MB per-file limit. To distribute them, attach the `.exe` files to a
-[GitHub Release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
-(assets can be up to 2 GB) instead of committing them:
-
-```bash
-gh release create v0.1.0 "release/PDF Manager-0.1.0-portable.exe" "release/PDF Manager-0.1.0-Setup.exe"
-```
-
-The build keeps only the en-US and fr Chromium locale packs, strips source
-maps, and uses maximum compression to keep the artifacts small.
+Each command first runs `npm run build` (type-check + production web build
+into `dist/`), then packages it with
+[electron-builder](https://www.electron.build/). The results land in
+`release/`:
 
 | File | Type | Size (approx.) |
 |------|------|----------------|
-| `PDF Manager-0.1.0-portable.exe` | Portable single-file | ~82 MB |
-| `PDF Manager-0.1.0-Setup.exe`    | Per-user NSIS installer | ~82 MB |
+| `release/PDF Manager-0.1.0-Setup.exe`    | Per-user installer (English/French) | ~82 MB |
+| `release/PDF Manager-0.1.0-portable.exe` | Portable single file, no installation | ~82 MB |
+
+The version number in the file names comes from `"version"` in `package.json`.
+
+### 6. Install and run
+
+- **Installer:** double-click `PDF Manager-<version>-Setup.exe`, pick
+  *English* or *Français* in the first dialog, and follow the wizard. It
+  installs into `%LOCALAPPDATA%\Programs\PDF Manager` without administrator
+  rights, and creates Start Menu and Desktop shortcuts.
+- **Portable:** copy `PDF Manager-<version>-portable.exe` anywhere (even a USB
+  drive) and double-click it.
+
+The executables are unsigned, so Windows SmartScreen shows *"Windows protected
+your PC"* on first run: click **More info**, then **Run anyway** (see below).
+
+### 7. Publish a release (optional)
+
+`release/` is **git-ignored**: the installers are around 80–100 MB and the
+unpacked Electron binary is over 200 MB, above GitHub's 100 MB per-file limit.
+Attach the `.exe` files to a
+[GitHub Release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
+instead (assets can be up to 2 GB):
+
+```bash
+gh release create v0.1.0 "release/PDF Manager-0.1.0-Setup.exe" "release/PDF Manager-0.1.0-portable.exe"
+```
+
+### Building the web version only
+
+```bash
+npm run build      # outputs static files to dist/
+npm run preview    # serves dist/ locally to check the production build
+```
+
+`dist/` is fully static — open it from any local static file server. It makes
+no network requests at runtime.
+
+### Troubleshooting the build
+
+| Problem | Fix |
+|---------|-----|
+| `npm ci` fails while downloading Electron (proxy/firewall) | Set a mirror, e.g. `set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/` (Command Prompt), then rerun `npm ci` |
+| `EPERM` / "file is locked" during `npm run dist` | Close any running PDF Manager window and antivirus scans of `release/`, delete `release/`, and rerun |
+| `npm run dist` on Linux/macOS fails on `wine` | Install Wine, or build on Windows |
+| Out-of-date or broken `node_modules` | Delete `node_modules/` and rerun `npm ci` |
+
+### All npm commands
+
+| Command | What it does |
+|---------|--------------|
+| `npm run dev` | Start the Vite dev server (browser) |
+| `npm run electron:dev` | Start Vite + Electron side by side |
+| `npm run build` | Type-check and produce a production web build in `dist/` |
+| `npm run preview` | Serve the production build locally |
+| `npm run dist` | Build the Windows installer + portable `.exe` into `release/` |
+| `npm run dist:installer` | Build the Windows installer only |
+| `npm run dist:portable` | Build the portable `.exe` only |
+| `npm run lint` | Run ESLint (zero warnings allowed) |
+| `npm run typecheck` | Type-check without emitting |
+| `npm test` | Run the unit test suite (Vitest) |
+| `npm run test:watch` | Run tests in watch mode |
+
+---
+
+## Desktop app details
+
+Both Windows artifacts run **without administrator rights** and make **zero
+network calls** at runtime. The build keeps only the en-US and fr Chromium
+locale packs, strips source maps, and uses maximum compression to keep the
+artifacts small.
 
 ### Portable .exe
 
@@ -74,9 +241,14 @@ maps, and uses maximum compression to keep the artifacts small.
 
 ### Per-user NSIS installer
 
+- Bilingual wizard (English / French).
+- Publisher **D.Bako**, shown in *Apps & features*, as *Company* in the
+  `.exe` properties, and as the Start Menu folder name. It comes from
+  `"author": { "name": "D.Bako" }` in `package.json`; the copyright line
+  (*Copyright © 2026 Dramane Bako*) is set in `electron-builder.yml`.
 - Installs into **`%LOCALAPPDATA%\Programs\PDF Manager`** (no admin, no UAC).
 - Creates Start Menu and Desktop shortcuts.
-- Provides a standard uninstaller under Add/Remove Programs (user scope).
+- Provides a standard uninstaller under *Apps & features* (user scope).
 
 ### SmartScreen warning (expected)
 
@@ -89,14 +261,6 @@ for private unsigned builds. To proceed:
 
 SmartScreen does not block the app permanently; it only asks once per executable.
 
-### Develop with Electron
-
-```bash
-npm run electron:dev   # starts Vite dev server + Electron side-by-side
-```
-
-The browser dev workflow (`npm run dev`) is unchanged.
-
 ### Renderer security model
 
 | Setting | Value |
@@ -105,43 +269,15 @@ The browser dev workflow (`npm run dev`) is unchanged.
 | `contextIsolation` | `true` |
 | `sandbox` | `true` |
 | External navigation | blocked (`will-navigate`) |
-| New windows | denied (`setWindowOpenHandler`) |
+| New windows | denied; `https://` links (the author credit) open in the default browser |
+| Preload bridge | exposes one function, `window.pdfManager.setLanguage(lang)`, so the menu can follow the UI language; the main process only accepts `en`/`fr` from its own window |
 
-The renderer has no access to Node.js APIs. File exports use the existing
-in-browser Blob download — no native save dialog (avoids IPC complexity for
-a single-user private app).
-
----
-
-## Getting started
-
-```bash
-npm install      # install dependencies
-npm run dev      # start the dev server (prints a localhost URL)
-```
-
-Open the printed URL, drop in a PDF, and start editing.
-
-### Available commands
-
-| Command             | What it does                                  |
-| ------------------- | --------------------------------------------- |
-| `npm run dev`       | Start the Vite dev server                     |
-| `npm run build`     | Type-check and produce a production build in `dist/` |
-| `npm run preview`   | Serve the production build locally            |
-| `npm run lint`      | Run ESLint (zero warnings allowed)            |
-| `npm run typecheck` | Type-check without emitting                   |
-| `npm run test`      | Run the unit test suite (Vitest)              |
-
-### Production build
-
-```bash
-npm run build        # outputs static files to dist/
-npm run preview      # preview the built app locally
-```
-
-`dist/` is fully static — open it from any local static file server. It makes no
-network requests at runtime.
+The renderer has no access to Node.js APIs. Menu commands reach the page as a
+`pdfmanager:menu` DOM event dispatched by the main process (with a user
+gesture, so *File → Open…* may open the file picker); only a fixed list of
+command names is ever sent. Menu shortcuts are shown but not registered, so
+each key press is handled once, by the page. File exports use the in-browser
+Blob download — no native save dialog.
 
 ## Architecture
 
@@ -160,11 +296,26 @@ src/
     extract.ts         # PDF.js page → text chunks, ruling lines, fills, images
     layout.ts          # layout analysis: lines, paragraphs, tables (pure, tested)
     convert.ts         # layout → docx / xlsx writers (lazy-loaded)
+    errors.ts          # coded errors, translated by the UI
     *.test.ts          # unit tests
+  i18n/
+    en.ts / fr.ts      # UI strings (same keys, checked by a test)
+    index.ts           # language detection, translate(), useI18n()
+    I18nProvider.tsx   # React provider + language persistence
   hooks/
-    useEditor.ts       # central editor state + actions
-  components/          # presentational React components
-  App.tsx              # layout, tabs, async/error orchestration
+    useEditor.ts       # central editor state + actions, with undo/redo
+    history.ts         # pure undo/redo history (tested)
+    shortcuts.ts       # key → action mapping (tested)
+    useShortcuts.ts    # window keyboard listener
+  components/          # presentational React components + inline SVG icons
+  desktop.ts           # bridge to the Electron menu (no-op in the browser)
+  App.tsx              # layout, tool panels, async/error orchestration
+electron/
+  main.cjs             # window, security hardening, installer language
+  menu.cjs             # bilingual window menu template
+  preload.cjs          # exposes setLanguage() to the page, nothing else
+build/
+  installer.nsh        # NSIS hook: saves the installer language for the app
 ```
 
 The editor models a document as an ordered list of **page references**, each
@@ -214,7 +365,12 @@ and text uses the standard Helvetica font.
 - Optional OCR (e.g. tesseract.js) for scanned-PDF conversion
 - Text colour and header/footer detection in Word conversion
 - Per-page (not just whole-document) convert/compress
-- Keyboard shortcuts and undo/redo
+- A custom app icon (`build/icon.ico`) in place of the default Electron icon
+
+## Author
+
+PDF Manager is created and maintained by
+**[Dramane Bako](https://github.com/bakodramane)**.
 
 ## Privacy
 

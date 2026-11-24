@@ -1,5 +1,6 @@
 import { PDFDocument, degrees } from "pdf-lib";
 import type { PageRef, PdfSource } from "./types";
+import { AppError } from "./errors";
 
 /**
  * Rebuild a single PDF (as bytes) from an ordered list of page references.
@@ -13,7 +14,10 @@ export async function assemblePdf(
   getSource: (id: string) => PdfSource | undefined,
 ): Promise<Uint8Array> {
   if (pages.length === 0) {
-    throw new Error("Nothing to export — the document has no pages.");
+    throw new AppError(
+      "nothingToExport",
+      "Nothing to export — the document has no pages.",
+    );
   }
 
   const out = await PDFDocument.create();
@@ -23,7 +27,7 @@ export async function assemblePdf(
     const cached = docCache.get(sourceId);
     if (cached) return cached;
     const src = getSource(sourceId);
-    if (!src) throw new Error("A source PDF is missing.");
+    if (!src) throw new AppError("missingSource", "A source PDF is missing.");
     const doc = await PDFDocument.load(src.bytes);
     docCache.set(sourceId, doc);
     return doc;
