@@ -14,12 +14,12 @@ import { FileDrop } from "./components/FileDrop";
 import { PageGrid } from "./components/PageGrid";
 import { Icon, type IconName } from "./components/Icon";
 import { Dialog } from "./components/Dialog";
+import { Viewer, type ViewerHandle, type Zoom } from "./components/Viewer";
 import { useShortcuts } from "./hooks/useShortcuts";
 import { SHORTCUT_LIST, keyLabel, type ShortcutAction } from "./hooks/shortcuts";
 import { assemblePdf, deriveName, downloadBytes } from "./pdf/assemble";
 import { extractPages, parsePageRanges, splitIntoRanges } from "./pdf/operations";
 import { compressPdf } from "./pdf/compress";
-import { applyImageOverlay, applyTextOverlay } from "./pdf/overlay";
 import { dropRenderDoc, getRenderDoc } from "./pdf/render";
 import { pdfToDocx, pdfToXlsx } from "./pdf/convert";
 import { AppError } from "./pdf/errors";
@@ -38,7 +38,11 @@ const TABS: { id: Tab; label: MessageKey; icon: IconName }[] = [
   { id: "export", label: "nav.export", icon: "export" },
 ];
 
+type View = "grid" | "document";
 type Notice = { kind: "error" | "success"; text: string };
+
+/** App icon (public/icon.png), also used as the window and installer icon. */
+const LOGO_URL = `${import.meta.env.BASE_URL}icon.png`;
 type DialogId = "credits" | "shortcuts";
 
 export default function App() {
@@ -49,9 +53,19 @@ export default function App() {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [dialog, setDialog] = useState<DialogId | null>(null);
   const [extractRange, setExtractRange] = useState("");
+  const [view, setView] = useState<View>("grid");
+  const [zoom, setZoom] = useState<Zoom>("width");
+  const [currentPageId, setCurrentPageId] = useState<string | null>(null);
   const openInputRef = useRef<HTMLInputElement>(null);
+  const viewerRef = useRef<ViewerHandle>(null);
 
-  const { pages, selected, getSource } = editor;
+  const { pages, forms, selected, getSource } = editor;
+
+  /** Show the document view, optionally starting at a page. */
+  const openDocument = useCallback((pageId?: string) => {
+    if (pageId) setCurrentPageId(pageId);
+    setView("document");
+  }, []);
   const baseName = useMemo(() => {
     const first = pages[0] && getSource(pages[0].sourceId);
     return first?.name ?? "document.pdf";
@@ -109,8 +123,8 @@ export default function App() {
 
   /** Assemble current working order into bytes (shared by export/convert). */
   const assemble = useCallback(
-    () => assemblePdf(pages, getSource),
-    [pages, getSource],
+    () => assemblePdf(pages, getSource, forms),
+    [pages, getSource, forms],
   );
 
   /**
@@ -125,12 +139,12 @@ export default function App() {
           ? parsePageRanges(extractRange, pages.length).map((i) => pages[i])
           : extractPages(pages, selected);
         if (chosen.length === 0) throw new Error(t("error.noSelection"));
-        const bytes = await assemblePdf(chosen, getSource);
+        const bytes = await assemblePdf(chosen, getSource, forms);
         const file = deriveName(baseName, "_extraction");
         downloadBytes(bytes, file);
         showSuccess(t("notice.extracted", { count: chosen.length, file }));
       }),
-    [run, t, extractRange, pages, selected, getSource, baseName, showSuccess],
+    [run, t, extractRange, pages, selected, getSource, forms, baseName, showSuccess],
   );
 
   /** Highlight the pages typed in the range box in the grid. */
@@ -157,9 +171,23 @@ export default function App() {
   const hasPages = pages.length > 0;
   const hasSelection = selected.size > 0;
   const canExtract = hasPages && (hasSelection || extractRange.trim() !== "");
+  const inDocument = hasPages && view === "document";
 
   const onShortcut = (action: ShortcutAction) => {
+    // Page-grid actions do nothing in the document view, so Delete or R
+    // never change pages the user cannot see selected.
+    const gridOnly = ["selectAll", "clearSelection", "delete", "rotateRight", "rotateLeft"];
+    if (inDocument && gridOnly.includes(action)) return;
     switch (action) {
+      case "zoomIn":
+        viewerRef.current?.zoomIn();
+        break;
+      case "zoomOut":
+        viewerRef.current?.zoomOut();
+        break;
+      case "zoomReset":
+        viewerRef.current?.zoomReset();
+        break;
       case "open":
         openInputRef.current?.click();
         break;
@@ -208,6 +236,9 @@ export default function App() {
       case "export":
       case "undo":
       case "redo":
+      case "zoomIn":
+      case "zoomOut":
+      case "zoomReset":
         onShortcut(command);
         break;
       case "close":
@@ -237,15 +268,17 @@ export default function App() {
     exportPdf,
     showError,
     showSuccess,
+    view,
+    setView,
+    openDocument,
+    viewerRef,
   };
 
   return (
     <div className={styles.app}>
       <header className={styles.topbar}>
         <div className={styles.brand}>
-          <span className={styles.logo}>
-            <Icon name="logo" size={20} />
-          </span>
+          <img className={styles.logoImage} src={LOGO_URL} alt="" width={36} height={36} />
           <div className={styles.brandText}>
             <h1>{t("app.name")}</h1>
             <span>{t("app.tagline")}</span>
@@ -287,7 +320,10 @@ export default function App() {
               key={item.id}
               className={[styles.railItem, tab === item.id ? styles.active : ""].join(" ")}
               aria-current={tab === item.id ? "page" : undefined}
-              onClick={() => setTab(item.id)}
+              onClick={() => {
+                setTab(item.id);
+                if (item.id === "annotate") setView("document");
+              }}
             >
               <Icon name={item.icon} size={20} />
               <span>{t(item.label)}</span>
@@ -321,7 +357,18 @@ export default function App() {
         </aside>
 
         <main className={styles.workspace}>
-          {hasPages ? (
+          {hasPages && view === "document" ? (
+            <Viewer
+              ref={viewerRef}
+              editor={editor}
+              zoom={zoom}
+              onZoomChange={setZoom}
+              startPageId={currentPageId}
+              onCurrentPage={setCurrentPageId}
+              onError={showError}
+              viewSwitch={<ViewSwitch view={view} onChange={setView} />}
+            />
+          ) : hasPages ? (
             <>
               <Toolbar {...ctx} />
               <div className={styles.gridScroll}>
@@ -331,6 +378,7 @@ export default function App() {
                   getSource={getSource}
                   onToggle={editor.toggleSelect}
                   onReorder={editor.reorder}
+                  onOpen={openDocument}
                 />
               </div>
             </>
@@ -439,6 +487,10 @@ interface PanelCtx {
   exportPdf: () => Promise<void>;
   showError: (text: string) => void;
   showSuccess: (text: string) => void;
+  view: View;
+  setView: (view: View) => void;
+  openDocument: (pageId?: string) => void;
+  viewerRef: React.RefObject<ViewerHandle>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -469,9 +521,7 @@ function CreditsContent() {
   return (
     <div className={styles.credits}>
       <div className={styles.creditsApp}>
-        <span className={styles.logo}>
-          <Icon name="logo" size={20} />
-        </span>
+        <img className={styles.logoImage} src={LOGO_URL} alt="" width={36} height={36} />
         <div>
           <strong>{t("app.name")}</strong>
           <span>{t("credits.version", { version: __APP_VERSION__ })}</span>
@@ -558,12 +608,37 @@ function Home({ onFiles }: { onFiles: (files: File[]) => void }) {
   );
 }
 
-function Toolbar({ editor, hasSelection, extractSelection, canExtract }: PanelCtx) {
+function ViewSwitch({ view, onChange }: { view: View; onChange: (view: View) => void }) {
+  const { t } = useI18n();
+  const items: { id: View; icon: IconName; label: MessageKey }[] = [
+    { id: "grid", icon: "pages", label: "view.grid" },
+    { id: "document", icon: "document", label: "view.document" },
+  ];
+  return (
+    <div className={styles.segmented} role="group" aria-label={t("view.label")}>
+      {items.map((item) => (
+        <button
+          key={item.id}
+          className={view === item.id ? styles.segmentActive : ""}
+          aria-pressed={view === item.id}
+          title={t(item.label)}
+          onClick={() => onChange(item.id)}
+        >
+          <Icon name={item.icon} size={14} />
+          <span className={styles.hideNarrow}>{t(item.label)}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Toolbar({ editor, hasSelection, extractSelection, canExtract, view, setView }: PanelCtx) {
   const { t } = useI18n();
   const count = editor.pages.length;
   return (
     <div className={styles.toolbar}>
       <div className={styles.toolbarInfo}>
+        <ViewSwitch view={view} onChange={setView} />
         <strong>
           {count === 1 ? t("toolbar.page") : t("toolbar.pages", { count })}
         </strong>
@@ -785,7 +860,7 @@ function MergeSplitPanel({ editor, run, baseName, addFiles, showSuccess }: Panel
       const chunks = splitIntoRanges(editor.pages, nums);
       if (chunks.length <= 1) throw new Error(t("error.splitPoints"));
       for (let i = 0; i < chunks.length; i++) {
-        const bytes = await assemblePdf(chunks[i], editor.getSource);
+        const bytes = await assemblePdf(chunks[i], editor.getSource, editor.forms);
         downloadBytes(bytes, deriveName(baseName, `_part${i + 1}`));
       }
       showSuccess(t("notice.split", { count: chunks.length }));
@@ -850,119 +925,54 @@ function InsertSection({ editor, run }: { editor: EditorApi; run: RunFn }) {
   );
 }
 
-function AnnotatePanel({ editor, run, assemble, baseName, hasPages, showError }: PanelCtx) {
+function AnnotatePanel({ editor, hasPages, showError, view, openDocument, viewerRef }: PanelCtx) {
   const { t } = useI18n();
-  const [text, setText] = useState("");
-  const [pageNo, setPageNo] = useState(1);
-  const [x, setX] = useState(0.1);
-  const [y, setY] = useState(0.1);
-  const [size, setSize] = useState(24);
+  const count = editor.pages.reduce((n, p) => n + (p.annotations?.length ?? 0), 0);
 
-  const applyText = () =>
-    run(t("busy.addingText"), async () => {
-      if (!text.trim()) throw new Error(t("error.enterText"));
-      const bytes = await assemble();
-      const out = await applyTextOverlay(bytes, {
-        pageIndex: pageNo - 1,
-        text,
-        x,
-        y,
-        size,
-      });
-      editor.replaceWithBytes(out, deriveName(baseName, "_annotated"), editor.pages.length);
-      setText("");
-    });
-
-  const applyImage = (files: File[]) =>
-    run(t("busy.addingImage"), async () => {
-      const file = files[0];
-      if (!/image\/(png|jpe?g)/.test(file.type)) throw new Error(t("error.imageType"));
-      const imgBytes = new Uint8Array(await file.arrayBuffer());
-      const bytes = await assemble();
-      const out = await applyImageOverlay(bytes, {
-        pageIndex: pageNo - 1,
-        imageBytes: imgBytes,
-        mime: file.type,
-        x,
-        y,
-        widthFraction: 0.3,
-      });
-      editor.replaceWithBytes(out, deriveName(baseName, "_signed"), editor.pages.length);
-    });
+  /** Make sure the document view is showing, then act on it. */
+  const withViewer = (fn: (viewer: ViewerHandle) => void) => {
+    if (!hasPages) {
+      showError(t("error.loadFirst"));
+      return;
+    }
+    if (view !== "document") openDocument();
+    // The viewer mounts on the next render when switching views.
+    setTimeout(() => viewerRef.current && fn(viewerRef.current), 0);
+  };
 
   return (
     <>
       <PanelHeader title="annotate.title" description="annotate.description" />
-      <Section title={t("annotate.position")}>
-        <label className={styles.field}>
-          {t("annotate.page")}
-          <input
-            type="number"
-            min={1}
-            max={editor.pages.length}
-            value={pageNo}
-            onChange={(e) => setPageNo(parseInt(e.target.value, 10) || 1)}
-          />
-        </label>
-        <div className={styles.fieldRow}>
-          <label className={styles.field}>
-            {t("annotate.x")}
-            <input
-              type="number"
-              step={0.05}
-              min={0}
-              max={1}
-              value={x}
-              onChange={(e) => setX(parseFloat(e.target.value) || 0)}
-            />
-          </label>
-          <label className={styles.field}>
-            {t("annotate.y")}
-            <input
-              type="number"
-              step={0.05}
-              min={0}
-              max={1}
-              value={y}
-              onChange={(e) => setY(parseFloat(e.target.value) || 0)}
-            />
-          </label>
-        </div>
-      </Section>
-      <Section title={t("annotate.text")}>
-        <label className={styles.field}>
-          {t("annotate.textLabel")}
-          <input type="text" value={text} onChange={(e) => setText(e.target.value)} />
-        </label>
-        <label className={styles.field}>
-          {t("annotate.fontSize")}
-          <input
-            type="number"
-            min={6}
-            max={144}
-            value={size}
-            onChange={(e) => setSize(parseInt(e.target.value, 10) || 24)}
-          />
-        </label>
-        <button className="primary block" disabled={!hasPages} onClick={applyText}>
-          <Icon name="annotate" size={16} />
-          {t("annotate.addText")}
+      <Section title={t("annotate.add")}>
+        <button className="primary block" disabled={!hasPages} onClick={() => withViewer((v) => v.startText())}>
+          <Icon name="text" size={16} />
+          {t("annotate.addTextButton")}
         </button>
-      </Section>
-      <Section title={t("annotate.image")}>
+        <p>{t("annotate.addTextHint")}</p>
         <FileDrop
           multiple={false}
-          accept="image/png,image/jpeg"
+          accept="image/png,image/jpeg,image/webp,image/gif,image/bmp"
+          icon="signature"
           label={t("annotate.imageDrop")}
-          onFiles={(f) => {
-            if (!hasPages) {
-              showError(t("error.loadFirst"));
-              return;
-            }
-            applyImage(f);
-          }}
+          onFiles={(files) => withViewer((v) => void v.placeImage(files[0]))}
         />
         <p>{t("annotate.imageHint")}</p>
+      </Section>
+      <Section title={t("annotate.howTo")}>
+        <ul className={styles.tips}>
+          <li>{t("annotate.tipMove")}</li>
+          <li>{t("annotate.tipEdit")}</li>
+          <li>{t("annotate.tipFormat")}</li>
+          <li>{t("annotate.tipResize")}</li>
+          <li>{t("annotate.tipDelete")}</li>
+        </ul>
+        {count > 0 && (
+          <p className={styles.success}>{t("thumb.annotations", { count })}</p>
+        )}
+        <p>{t("annotate.flattenNote")}</p>
+      </Section>
+      <Section title={t("annotate.forms")}>
+        <p>{t("annotate.formsHint")}</p>
       </Section>
     </>
   );

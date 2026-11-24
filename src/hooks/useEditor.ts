@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadPdfFile, makeId } from "../pdf/loader";
-import type { PageRef, PdfSource } from "../pdf/types";
+import type {
+  Annotation,
+  FieldValue,
+  FormValues,
+  PageRef,
+  PdfSource,
+} from "../pdf/types";
 import {
   deletePages,
   extractPages,
@@ -9,6 +15,7 @@ import {
   rotatePages,
 } from "../pdf/operations";
 import { dropRenderDoc } from "../pdf/render";
+import { dropPageInfo } from "../pdf/pageInfo";
 import {
   createHistory,
   pushHistory,
@@ -17,9 +24,31 @@ import {
   type History,
 } from "./history";
 
+/** One undoable state of the document. */
+export interface DocState {
+  pages: PageRef[];
+  /** Form values entered by the user, per source file. */
+  forms: FormValues;
+}
+
+const EMPTY: DocState = { pages: [], forms: {} };
+
 /** Two page lists are the same edit state if they hold the same refs in order. */
 function samePages(a: PageRef[], b: PageRef[]): boolean {
   return a.length === b.length && a.every((p, i) => p === b[i]);
+}
+
+function sameState(a: DocState, b: DocState): boolean {
+  return a.forms === b.forms && samePages(a.pages, b.pages);
+}
+
+/** Apply `edit` to the annotations of the page with id `pageId`. */
+function editAnnotations(
+  pages: PageRef[],
+  pageId: string,
+  edit: (list: Annotation[]) => Annotation[],
+): PageRef[] {
+  return pages.map((p) => (p.id === pageId ? { ...p, annotations: edit(p.annotations ?? []) } : p));
 }
 
 /**
@@ -32,15 +61,17 @@ function samePages(a: PageRef[], b: PageRef[]): boolean {
  */
 export function useEditor() {
   const sourcesRef = useRef(new Map<string, PdfSource>());
-  const [history, setHistory] = useState<History<PageRef[]>>(() => createHistory([]));
+  const [history, setHistory] = useState<History<DocState>>(() => createHistory(EMPTY));
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const pages = history.present;
+  const { pages, forms } = history.present;
 
   const getSource = useCallback((id: string) => sourcesRef.current.get(id), []);
 
   /** Apply an edit to the page list as one undoable step. */
   const commit = useCallback((edit: (prev: PageRef[]) => PageRef[]) => {
-    setHistory((h) => pushHistory(h, edit(h.present), samePages));
+    setHistory((h) =>
+      pushHistory(h, { ...h.present, pages: edit(h.present.pages) }, sameState),
+    );
   }, []);
 
   // Keep the selection limited to pages that exist after any change
@@ -56,14 +87,17 @@ export function useEditor() {
   // Release sources no history step refers to, and the render cache of
   // sources not on screen (it is rebuilt on demand after an undo).
   useEffect(() => {
-    const onScreen = new Set(history.present.map((p) => p.sourceId));
+    const onScreen = new Set(history.present.pages.map((p) => p.sourceId));
     const used = new Set(onScreen);
     for (const step of [...history.past, ...history.future]) {
-      for (const p of step) used.add(p.sourceId);
+      for (const p of step.pages) used.add(p.sourceId);
     }
     for (const id of [...sourcesRef.current.keys()]) {
       if (!onScreen.has(id)) dropRenderDoc(id);
-      if (!used.has(id)) sourcesRef.current.delete(id);
+      if (!used.has(id)) {
+        sourcesRef.current.delete(id);
+        dropPageInfo(id);
+      }
     }
   }, [history]);
 
@@ -153,7 +187,7 @@ export function useEditor() {
 
   /**
    * Replace the working document with a single new source built from raw
-   * bytes (used after annotate/compress so further edits stay consistent).
+   * bytes (used after compress so further edits stay consistent).
    * Undo brings the previous pages back.
    */
   const replaceWithBytes = useCallback(
@@ -166,11 +200,45 @@ export function useEditor() {
         pageIndex: i,
         rotation: 0,
       }));
-      commit(() => newPages);
+      setHistory((h) => pushHistory(h, { pages: newPages, forms: {} }, sameState));
       setSelected(new Set());
     },
+    [],
+  );
+
+  /** Add an annotation to a page. */
+  const addAnnotation = useCallback(
+    (pageId: string, annotation: Annotation) =>
+      commit((prev) => editAnnotations(prev, pageId, (list) => [...list, annotation])),
     [commit],
   );
+
+  /** Change some properties of an annotation (one undo step). */
+  const updateAnnotation = useCallback(
+    (pageId: string, id: string, patch: Partial<Annotation>) =>
+      commit((prev) =>
+        editAnnotations(prev, pageId, (list) =>
+          list.map((a) => (a.id === id ? ({ ...a, ...patch } as Annotation) : a)),
+        ),
+      ),
+    [commit],
+  );
+
+  const removeAnnotation = useCallback(
+    (pageId: string, id: string) =>
+      commit((prev) => editAnnotations(prev, pageId, (list) => list.filter((a) => a.id !== id))),
+    [commit],
+  );
+
+  /** Set a form field's value (one undo step; no step if unchanged). */
+  const setFieldValue = useCallback((sourceId: string, name: string, value: FieldValue) => {
+    setHistory((h) => {
+      const current = h.present.forms[sourceId] ?? {};
+      if (current[name] === value) return h;
+      const forms = { ...h.present.forms, [sourceId]: { ...current, [name]: value } };
+      return pushHistory(h, { ...h.present, forms }, sameState);
+    });
+  }, []);
 
   const undo = useCallback(() => setHistory(undoHistory), []);
   const redo = useCallback(() => setHistory(redoHistory), []);
@@ -179,12 +247,13 @@ export function useEditor() {
   const reset = useCallback(() => {
     for (const id of sourcesRef.current.keys()) dropRenderDoc(id);
     sourcesRef.current = new Map();
-    setHistory(createHistory([]));
+    setHistory(createHistory(EMPTY));
     setSelected(new Set());
   }, []);
 
   return {
     pages,
+    forms,
     selected,
     getSource,
     canUndo: history.past.length > 0,
@@ -202,6 +271,10 @@ export function useEditor() {
     reorder,
     insertFromFile,
     replaceWithBytes,
+    addAnnotation,
+    updateAnnotation,
+    removeAnnotation,
+    setFieldValue,
     reset,
   };
 }

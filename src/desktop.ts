@@ -15,6 +15,9 @@ export const MENU_COMMANDS = [
   "close",
   "undo",
   "redo",
+  "zoomIn",
+  "zoomOut",
+  "zoomReset",
   "shortcuts",
   "credits",
 ] as const;

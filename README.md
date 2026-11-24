@@ -26,17 +26,50 @@ previews. The Windows desktop app is packaged with Electron.
 - **Merge** multiple PDFs (added files are appended to the working document)
 - **Split** a PDF at chosen page boundaries (each part downloads separately)
 - **Insert** pages from another PDF at a chosen position
-- **Export** the edited document, applying the current order, rotations, and
-  deletions
+- **Export** the edited document, applying the current order, rotations,
+  deletions, annotations, and form entries
 - **Undo / redo** every change to the document (up to 50 steps) with the ↶ ↷
   buttons in the header, `Ctrl+Z` / `Ctrl+Y`, or the *Edit* menu. This covers
   adding, deleting, rotating, reordering, inserting, *Keep only selected*,
-  annotating, and compressing. *Close document* starts afresh and clears the
+  adding, moving, resizing, and formatting annotations, filling in form
+  fields, and compressing. *Close document* starts afresh and clears the
   history.
 
+### Document view (read, zoom, annotate)
+Switch between the **Page grid** and the **Document** view with the toggle at
+the top of the workspace (double-clicking a thumbnail also opens that page).
+The Document view works like a regular PDF viewer:
+- Continuous scrolling through all pages, with previous/next buttons and a
+  page-number box
+- **Zoom** from 25 % to 500 %: the − / + buttons, the zoom list (including
+  *Fit width* and *Fit page*), `Ctrl` + mouse wheel or trackpad pinch
+  (zooms around the pointer), and `Ctrl` + `+` / `−` / `0`
+- Pages stay sharp at every zoom level, and their **text can be selected and
+  copied**
+
 ### Annotate
-- Add **text** at a chosen page and position (X/Y as fractions of the page)
-- Overlay a **signature / image** (PNG or JPG)
+In the Document view (or from the **Annotate** panel):
+- **Text**: choose *Add text*, click where it should go, and type. Select a
+  text to change its **font** (Helvetica, Times, Courier), **size** (− / + or
+  type a value), **bold**, **italic**, and **colour** in the bar above the
+  page; double-click it to edit the words. New texts reuse the last
+  formatting.
+- **Signature / image** (PNG, JPG, WebP, GIF, or BMP): it appears in the
+  middle of the current page. Drag the **corner handles** to resize it
+  (proportions kept; *Keep proportions* or `Shift` switches that), or the
+  **edge handles** to reshape (stretch) it.
+- **Drag** any text or signature to move it; arrow keys nudge it (`Shift` for
+  bigger steps) and `Delete` removes it.
+- Annotations stay editable (and undoable) until the document is exported,
+  compressed, or converted, when they are drawn into the pages. On rotated
+  pages they read upright.
+
+### Fill in forms
+Fillable PDF forms (text boxes, check boxes, radio buttons, drop-down and
+list boxes) show their fields highlighted in blue in the Document view. Type,
+tick, and choose directly on the page; every entry can be undone. On export
+the values are written into the fields, which **stay fillable** in other PDF
+readers.
 
 ### Compress
 - Re-packs the PDF structure using object streams
@@ -67,7 +100,14 @@ use ⌘ in place of Ctrl.
 | `Delete` / `Backspace` | Delete selected pages |
 | `Ctrl` + `E` | Extraction (page range or selected pages) |
 | `Ctrl` + `S` | Download the edited PDF (a "Saved" notice confirms it) |
+| `Ctrl` + `+` / `Ctrl` + `−` | Zoom in / out (Document view) |
+| `Ctrl` + `0` | Actual size (Document view) |
 | `?` | Show the shortcut list |
+
+In the Document view, the page-grid keys (`Ctrl` + `A`, `R`, `Delete`, …)
+are off so they never change pages you cannot see; `Delete`, arrow keys, and
+`Enter` (edit text) act on the selected annotation instead, and `Esc`
+deselects it.
 
 ### Credits
 
@@ -85,7 +125,7 @@ The desktop app has its own menu bar, in English or French to match the app
 |------|-------|
 | File / Fichier | Open PDF… · Download edited PDF · Close document · Quit |
 | Edit / Édition | Undo · Redo · Cut · Copy · Paste |
-| View / Affichage | Actual size · Zoom in · Zoom out · Full screen |
+| View / Affichage | Actual size · Zoom in · Zoom out (of the document) · Full screen |
 | Help / Aide | Keyboard shortcuts · Credits · Author's GitHub page |
 
 ### Languages (English / Français)
@@ -286,12 +326,14 @@ PDF logic is kept strictly separate from UI:
 ```
 src/
   pdf/                 # PDF logic — no React
-    types.ts           # PdfSource / PageRef data model
+    types.ts           # PdfSource / PageRef / annotation / form data model
     loader.ts          # file validation + loading
     operations.ts      # pure page-list ops (delete/rotate/reorder/extract/split/insert)
     assemble.ts        # rebuild + download output PDF (pdf-lib)
     render.ts          # page rendering via PDF.js (web worker)
-    overlay.ts         # text + image/signature overlay
+    pageInfo.ts        # page boxes + fillable form widgets (PDF.js)
+    annotations.ts     # annotation geometry + drawing into pages (tested)
+    forms.ts           # form filling + keeping fields fillable (tested)
     compress.ts        # object-stream re-packing
     extract.ts         # PDF.js page → text chunks, ruling lines, fills, images
     layout.ts          # layout analysis: lines, paragraphs, tables (pure, tested)
@@ -307,7 +349,8 @@ src/
     history.ts         # pure undo/redo history (tested)
     shortcuts.ts       # key → action mapping (tested)
     useShortcuts.ts    # window keyboard listener
-  components/          # presentational React components + inline SVG icons
+  components/          # React components + inline SVG icons
+    Viewer.tsx         # document view: zoom, text layer, annotations, forms
   desktop.ts           # bridge to the Electron menu (no-op in the browser)
   App.tsx              # layout, tool panels, async/error orchestration
 electron/
@@ -316,11 +359,17 @@ electron/
   preload.cjs          # exposes setLanguage() to the page, nothing else
 build/
   installer.nsh        # NSIS hook: saves the installer language for the app
+  icon.ico / icon.png  # app, shortcut, and installer icon
+public/
+  icon.png             # window icon, favicon, and in-app logo
 ```
 
 The editor models a document as an ordered list of **page references**, each
 pointing back to a loaded source PDF. Reorder/delete/insert/merge are simple
 immutable array operations; the output is rebuilt with pdf-lib only on export.
+Annotations live on their page reference (so they follow the page when it is
+moved or rotated) and form values are kept per source file; both are part of
+the undo history and are written into the PDF only when it is assembled.
 
 ## Robustness
 
@@ -354,18 +403,21 @@ structure (object streams), which helps PDFs produced by office software but may
 yield little on image-heavy files. The reported percentage reflects the actual
 before/after size.
 
-### Annotation
-Text/image overlays use absolute X/Y fractions (no on-canvas drag placement),
-and text uses the standard Helvetica font.
+### Annotation and forms
+- Text annotations use the PDF standard fonts (Helvetica, Times, Courier),
+  which cover Western European characters; other characters are replaced
+  with "?" in the exported file.
+- Signature fields (digital signatures), push buttons, and form scripts
+  (calculations, validation) are not supported. Field values are written with
+  Helvetica; readers that rebuild appearances may show another font.
 
 ## Future improvements
 
-- On-canvas drag placement for annotations and signatures
+- Free rotation of annotations, and drawing (ink) and highlight tools
 - Real image down-sampling for stronger compression
 - Optional OCR (e.g. tesseract.js) for scanned-PDF conversion
 - Text colour and header/footer detection in Word conversion
 - Per-page (not just whole-document) convert/compress
-- A custom app icon (`build/icon.ico`) in place of the default Electron icon
 
 ## Author
 

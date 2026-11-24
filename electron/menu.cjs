@@ -5,7 +5,7 @@
  * Kept free of `require("electron")` so it can be checked with plain Node;
  * main.cjs passes in the callbacks.
  *
- * App commands (Open, Undo, …) show their shortcut in the menu but do NOT
+ * App commands (Open, Undo, Zoom, …) show their shortcut in the menu but do NOT
  * register it (`registerAccelerator: false`): the renderer already handles
  * those keys, and registering them too would run each action twice and steal
  * Ctrl+Z from text fields.
@@ -25,7 +25,7 @@ const LABELS = {
     copy: "Copy",
     paste: "Paste",
     view: "&View",
-    resetZoom: "Actual size",
+    zoomReset: "Actual size",
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
     fullscreen: "Full screen",
@@ -49,7 +49,7 @@ const LABELS = {
     copy: "Copier",
     paste: "Coller",
     view: "&Affichage",
-    resetZoom: "Taille réelle",
+    zoomReset: "Taille réelle",
     zoomIn: "Zoom avant",
     zoomOut: "Zoom arrière",
     fullscreen: "Plein écran",
@@ -63,7 +63,18 @@ const LABELS = {
 };
 
 /** Commands the menu may send to the renderer (checked again there). */
-const MENU_COMMANDS = ["open", "export", "close", "undo", "redo", "shortcuts", "credits"];
+const MENU_COMMANDS = [
+  "open",
+  "export",
+  "close",
+  "undo",
+  "redo",
+  "zoomIn",
+  "zoomOut",
+  "zoomReset",
+  "shortcuts",
+  "credits",
+];
 
 /**
  * @param {"en"|"fr"} lang
@@ -113,9 +124,10 @@ function buildMenuTemplate(lang, { isDev, isMac, send, openAuthorPage }) {
     {
       label: L.view,
       submenu: [
-        { role: "resetZoom", label: L.resetZoom },
-        { role: "zoomIn", label: L.zoomIn },
-        { role: "zoomOut", label: L.zoomOut },
+        // Zoom the open document (the renderer handles these keys).
+        command("zoomReset", "Ctrl+0"),
+        command("zoomIn", "Ctrl+="),
+        command("zoomOut", "Ctrl+-"),
         { type: "separator" },
         { role: "togglefullscreen", label: L.fullscreen },
         ...(isDev

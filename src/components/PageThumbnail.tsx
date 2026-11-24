@@ -13,6 +13,7 @@ interface Props {
   dragging: boolean;
   dropTarget: boolean;
   onToggle: (id: string) => void;
+  onOpen: (id: string) => void;
   onDragStart: (index: number) => void;
   onDragOver: (index: number) => void;
   onDrop: () => void;
@@ -27,6 +28,7 @@ export function PageThumbnail({
   dragging,
   dropTarget,
   onToggle,
+  onOpen,
   onDragStart,
   onDragOver,
   onDrop,
@@ -56,6 +58,7 @@ export function PageThumbnail({
   }, [source, page.pageIndex, page.rotation]);
 
   const label = t("thumb.alt", { n: index + 1 });
+  const annotationCount = page.annotations?.length ?? 0;
 
   return (
     <div
@@ -71,6 +74,7 @@ export function PageThumbnail({
       ].join(" ")}
       draggable
       onClick={() => onToggle(page.id)}
+      onDoubleClick={() => onOpen(page.id)}
       onKeyDown={(e) => {
         if (e.key === " " || e.key === "Enter") {
           e.preventDefault();
@@ -87,7 +91,7 @@ export function PageThumbnail({
         onDrop();
       }}
       onDragEnd={onDragEnd}
-      title={t("toolbar.hint")}
+      title={`${t("toolbar.hint")}\n${t("thumb.open")}`}
     >
       <div className={styles.thumbSheet}>
         {failed ? (
@@ -108,6 +112,14 @@ export function PageThumbnail({
         <span>{index + 1}</span>
         {page.rotation !== 0 && (
           <span className={styles.rotationTag}>{page.rotation}°</span>
+        )}
+        {annotationCount > 0 && (
+          <span
+            className={styles.rotationTag}
+            title={t("thumb.annotations", { count: annotationCount })}
+          >
+            <Icon name="annotate" size={11} /> {annotationCount}
+          </span>
         )}
       </div>
     </div>
