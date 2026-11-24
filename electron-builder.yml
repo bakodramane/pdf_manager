@@ -39,6 +39,7 @@ asarUnpack:            # unpack assets PDF.js needs to read at runtime
   - "dist/pdfjs/**"
 
 win:
+  icon: build/icon.ico               # app, shortcut, and installer icon
   requestedExecutionLevel: asInvoker  # never request admin elevation
   target:
     - target: portable
@@ -67,6 +68,8 @@ nsis:
   multiLanguageInstaller: true
   displayLanguageSelector: true
   include: build/installer.nsh
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
 
 # Disable auto-update entirely — offline private app, no publish target.
 publish: null

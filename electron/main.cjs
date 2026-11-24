@@ -76,6 +76,9 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     title: "PDF Manager",
+    // Window/taskbar icon on Windows and Linux (the .exe icon comes from
+    // build/icon.ico via electron-builder).
+    icon: path.join(__dirname, isDev ? "../public/icon.png" : "../dist/icon.png"),
     // Match the renderer's light/dark theme to avoid a flash on start-up.
     backgroundColor: nativeTheme.shouldUseDarkColors ? "#0b0d13" : "#f4f5f9",
     webPreferences: {

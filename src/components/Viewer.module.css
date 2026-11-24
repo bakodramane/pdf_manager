@@ -1,0 +1,373 @@
+/* ------------------------------------------------------------------ */
+/* Document viewer: continuous pages, zoom, annotations, form fields.  */
+/* ------------------------------------------------------------------ */
+
+.viewer {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  padding: 0.45rem 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.divider {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+  margin: 0 0.3rem;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.toolbar :global(button.icon).active,
+.formatBar :global(button).active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.zoomReadout {
+  margin-left: auto;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+}
+
+.zoomSelect,
+.formatBar select {
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 0.3rem 0.4rem;
+}
+
+.zoomSelect {
+  width: 8.6rem;
+}
+
+.pageNumber {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.pageNumber input[type="text"] {
+  width: 3.2rem;
+  padding: 0.25rem 0.35rem;
+  text-align: center;
+  font-size: 0.82rem;
+}
+
+/* Contextual bar: formatting for the selected annotation, or a hint. */
+.formatBar,
+.hintBar {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  min-height: 44px;
+  padding: 0.35rem 1rem;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+
+.hintBar {
+  color: var(--muted);
+}
+
+.formatLabel {
+  font-weight: 600;
+  color: var(--muted);
+  margin-right: 0.25rem;
+}
+
+.formatHint {
+  color: var(--faint);
+}
+
+.sizeInput[type="text"] {
+  width: 3.4rem;
+  padding: 0.25rem 0.35rem;
+  text-align: center;
+  font-size: 0.82rem;
+}
+
+.letter {
+  width: 32px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+}
+
+.colour {
+  display: inline-flex;
+  width: 32px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.colour input {
+  width: 48px;
+  height: 48px;
+  margin: -9px;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------------ */
+/* Pages                                                               */
+/* ------------------------------------------------------------------ */
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+}
+
+.pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: max-content;
+  min-width: 100%;
+}
+
+.page {
+  position: relative;
+  flex: none;
+  background: #fff;
+  box-shadow: var(--sheet-shadow);
+}
+
+.pageLabel {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #b4b9c6;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+/* The unrotated page, turned as a whole so every layer stays aligned. */
+.sheet {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: 50% 50%;
+}
+
+.canvas,
+.textHolder,
+.formLayer,
+.annotationLayer {
+  position: absolute;
+  inset: 0;
+}
+
+.canvas :global(canvas) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.placing .textHolder,
+.placing .formLayer {
+  pointer-events: none;
+}
+
+.annotationLayer {
+  pointer-events: none;
+}
+
+.annotationLayer.placing {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+/* Selectable text (subset of PDF.js's text-layer styles). */
+.textHolder :global(.textLayer) {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  line-height: 1;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  caret-color: CanvasText;
+}
+
+.textHolder :global(.textLayer) :global(:is(span, br)) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.textHolder :global(.textLayer) :global(span.markedContent) {
+  top: 0;
+  height: 0;
+}
+
+.textHolder :global(.textLayer) ::selection {
+  background: rgba(0, 90, 255, 0.28);
+}
+
+.textHolder :global(.textLayer) :global(br)::selection {
+  background: transparent;
+}
+
+.textHolder :global(.textLayer) :global(.endOfContent) {
+  display: block;
+  position: absolute;
+  inset: 100% 0 0;
+  z-index: 0;
+  cursor: default;
+  user-select: none;
+}
+
+/* Fillable form fields. */
+.formLayer {
+  pointer-events: none;
+}
+
+.field {
+  position: absolute;
+  pointer-events: auto;
+  margin: 0;
+  padding: 0 0.15em;
+  border: 1px solid transparent;
+  border-radius: 1px;
+  background: rgba(0, 84, 255, 0.1);
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.15;
+  resize: none;
+  box-shadow: none;
+  transition: none;
+}
+
+.field:hover:not(:disabled) {
+  border-color: rgba(0, 84, 255, 0.55);
+  background: rgba(0, 84, 255, 0.14);
+}
+
+.field:focus,
+input.field[type="text"]:focus {
+  outline: none;
+  border-color: #0054ff;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: none;
+}
+
+.field:disabled,
+.field[readonly] {
+  background: transparent;
+  cursor: default;
+}
+
+input.field[type="text"] {
+  font-size: inherit;
+  padding: 0 0.15em;
+  border-radius: 1px;
+}
+
+select.field {
+  padding: 0;
+}
+
+button.check {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  line-height: 1;
+  color: #000;
+  font-weight: 700;
+}
+
+button.check:active:not(:disabled) {
+  transform: none;
+}
+
+.check.radio {
+  border-radius: 50%;
+}
+
+/* Annotations. */
+.annotation {
+  position: absolute;
+  pointer-events: auto;
+  transform-origin: 0 0;
+  white-space: pre;
+  cursor: move;
+  user-select: none;
+  outline: 1px dashed transparent;
+  outline-offset: 1px;
+}
+
+.annotation:hover {
+  outline-color: rgba(91, 76, 240, 0.6);
+}
+
+.annotationSelected,
+.annotationSelected:hover {
+  outline: 1.5px solid var(--accent);
+}
+
+.annotation.inert {
+  pointer-events: none;
+}
+
+.annotation img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.editing {
+  cursor: text;
+  user-select: text;
+  min-width: 0.6em;
+  outline: 1.5px solid var(--accent);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border: 1.5px solid var(--accent);
+  border-radius: 2px;
+  background: #fff;
+  pointer-events: auto;
+}

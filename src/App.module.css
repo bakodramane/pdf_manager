@@ -49,6 +49,14 @@
   box-shadow: 0 4px 14px rgba(232, 69, 125, 0.35);
 }
 
+.logoImage {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  box-shadow: 0 4px 14px rgba(20, 50, 110, 0.3);
+}
+
 .brandText {
   display: flex;
   flex-direction: column;
@@ -1074,4 +1082,18 @@
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Tips list in the Annotate panel. */
+.tips {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.rotationTag svg {
+  vertical-align: -1px;
 }

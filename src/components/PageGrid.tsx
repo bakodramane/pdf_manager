@@ -9,6 +9,8 @@ interface Props {
   getSource: (id: string) => PdfSource | undefined;
   onToggle: (id: string) => void;
   onReorder: (from: number, to: number) => void;
+  /** Open a page in the document view (double-click). */
+  onOpen: (pageId: string) => void;
 }
 
 export function PageGrid({
@@ -17,6 +19,7 @@ export function PageGrid({
   getSource,
   onToggle,
   onReorder,
+  onOpen,
 }: Props) {
   const dragFrom = useRef<number | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -40,6 +43,7 @@ export function PageGrid({
           dragging={dragIndex === index}
           dropTarget={dragIndex !== null && overIndex === index && dragIndex !== index}
           onToggle={onToggle}
+          onOpen={onOpen}
           onDragStart={(i) => {
             dragFrom.current = i;
             setDragIndex(i);

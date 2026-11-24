@@ -15,7 +15,8 @@ export type ErrorCode =
   | "nothingToExport"
   | "missingSource"
   | "invalidRange"
-  | "rangeOutOfBounds";
+  | "rangeOutOfBounds"
+  | "imageType";
 
 export class AppError extends Error {
   constructor(

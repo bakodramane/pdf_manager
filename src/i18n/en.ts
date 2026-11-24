@@ -46,12 +46,15 @@ export const en = {
   "shortcuts.extract": "Extraction (page range or selected pages)",
   "shortcuts.export": "Download the edited PDF",
   "shortcuts.help": "Show this list",
+  "shortcuts.zoomIn": "Zoom in (document view)",
+  "shortcuts.zoomOut": "Zoom out (document view)",
+  "shortcuts.zoomReset": "Actual size (document view)",
   "shortcuts.hint": "Press ? for keyboard shortcuts",
 
   // Landing (empty state)
   "home.title": "Your PDF toolkit, right on your desktop",
   "home.subtitle":
-    "Merge, split, extract, rotate, annotate, compress, and convert PDFs to Word or Excel. Nothing is uploaded — everything happens on this device.",
+    "Read, annotate, sign, and fill in PDFs; merge, split, extract, rotate, compress, and convert them to Word or Excel. Nothing is uploaded — everything happens on this device.",
   "home.drop": "Drop PDF files here",
   "home.dropHint": "or click to browse",
   "home.feature.organise": "Organise pages",
@@ -70,6 +73,29 @@ export const en = {
   "toolbar.selectAll": "Select all",
   "toolbar.clear": "Clear selection",
   "toolbar.hint": "Click to select · drag to reorder",
+
+  // View switch and document viewer
+  "view.label": "View",
+  "view.grid": "Page grid",
+  "view.document": "Document",
+  "viewer.prevPage": "Previous page",
+  "viewer.nextPage": "Next page",
+  "viewer.pageNumber": "Page number",
+  "viewer.zoom": "Zoom",
+  "viewer.zoomIn": "Zoom in (Ctrl +)",
+  "viewer.zoomOut": "Zoom out (Ctrl −)",
+  "viewer.fitWidth": "Fit width",
+  "viewer.fitPage": "Fit page",
+  "viewer.select": "Select and move",
+  "viewer.addText": "Add text",
+  "viewer.addImage": "Add a signature or image",
+  "viewer.hint":
+    "Ctrl + wheel to zoom · select text to copy it · double-click a text box to edit it",
+  "viewer.hintText": "Click on the page where the text should go (Esc to cancel).",
+  "viewer.formatText": "Text",
+  "viewer.formatImage": "Signature / image",
+  "thumb.annotations": "{count} annotation(s)",
+  "thumb.open": "Double-click to open in the document view",
 
   // Pages panel
   "pages.title": "Pages",
@@ -113,18 +139,38 @@ export const en = {
 
   // Annotate panel
   "annotate.title": "Annotate",
-  "annotate.description": "Stamp text or a signature onto a page.",
-  "annotate.position": "Position",
-  "annotate.page": "Page #",
-  "annotate.x": "X (0–1 from left)",
-  "annotate.y": "Y (0–1 from top)",
-  "annotate.text": "Text annotation",
-  "annotate.textLabel": "Text",
-  "annotate.fontSize": "Font size",
-  "annotate.addText": "Add text",
-  "annotate.image": "Signature / image",
-  "annotate.imageDrop": "Pick a PNG/JPG (30% of page width)",
-  "annotate.imageHint": "The image anchors at the X/Y position above.",
+  "annotate.description":
+    "Add text and signatures, fill in forms, and read the document at any zoom.",
+  "annotate.add": "Add to the page",
+  "annotate.addTextButton": "Add text",
+  "annotate.addTextHint": "Then click on the page where the text should go.",
+  "annotate.imageDrop": "Add a signature or image",
+  "annotate.imageHint": "PNG, JPG, WebP, GIF, or BMP. It appears in the middle of the current page.",
+  "annotate.howTo": "Editing on the page",
+  "annotate.tipMove": "Drag a text or signature to move it.",
+  "annotate.tipEdit": "Double-click a text to change it.",
+  "annotate.tipFormat": "Select a text to change its font, size, style, and colour in the bar above the page.",
+  "annotate.tipResize": "Drag a signature's corners to resize it, or its edges to reshape it.",
+  "annotate.tipDelete": "Press Delete to remove the selected item; arrow keys nudge it.",
+  "annotate.forms": "Forms",
+  "annotate.formsHint":
+    "Fillable fields are highlighted in blue on the page: type in them, tick boxes, and pick options. Entries are saved into the fields when you export.",
+  "annotate.flattenNote":
+    "Annotations stay editable until you export, compress, or convert the document.",
+  "annotate.defaultText": "Text",
+  "annotate.font": "Font",
+  "annotate.fontSize": "Font size (pt)",
+  "annotate.smaller": "Smaller text",
+  "annotate.larger": "Larger text",
+  "annotate.bold": "Bold",
+  "annotate.italic": "Italic",
+  "annotate.colour": "Text colour",
+  "annotate.editText": "Edit text",
+  "annotate.keepRatio": "Keep proportions",
+  "annotate.resizeHint": "Corners resize · edges reshape · Shift switches proportions",
+  "annotate.remove": "Remove (Del)",
+  "annotate.imageTitle": "Drag to move · drag the handles to resize",
+  "annotate.textTitle": "Drag to move · double-click to edit",
 
   // Compress panel
   "compress.title": "Compress",
@@ -146,7 +192,8 @@ export const en = {
   "export.title": "Export",
   "export.description": "Save your work as a new PDF.",
   "export.button": "Download edited PDF",
-  "export.hint": "Applies the current page order, rotations, and deletions.",
+  "export.hint":
+    "Applies the current page order, rotations, and deletions, and saves your annotations and form entries into the pages.",
 
   // Thumbnails
   "thumb.rendering": "Rendering…",
@@ -158,8 +205,6 @@ export const en = {
   "busy.splitting": "Splitting…",
   "busy.inserting": "Inserting…",
   "busy.extracting": "Extracting pages…",
-  "busy.addingText": "Adding text…",
-  "busy.addingImage": "Adding image…",
   "busy.compressing": "Compressing…",
   "busy.toWord": "Converting to Word…",
   "busy.toWordPage": "Converting to Word… page {done} of {total}",
@@ -176,8 +221,7 @@ export const en = {
   // Errors
   "error.splitPoints":
     "Provide at least one valid split point (e.g. 3, 7) inside the page range.",
-  "error.enterText": "Enter some text first.",
-  "error.imageType": "Use a PNG or JPG image.",
+  "error.imageType": "This image could not be read. Use a PNG, JPG, WebP, GIF, or BMP image.",
   "error.loadFirst": "Load a PDF first.",
   "error.noSelection": "Select at least one page first.",
   "error.noFile": "No file provided.",

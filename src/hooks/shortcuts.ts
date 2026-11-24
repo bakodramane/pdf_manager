@@ -11,6 +11,9 @@ export type ShortcutAction =
   | "export"
   | "undo"
   | "redo"
+  | "zoomIn"
+  | "zoomOut"
+  | "zoomReset"
   | "help";
 
 /** The subset of KeyboardEvent the matcher needs (easy to fake in tests). */
@@ -31,6 +34,10 @@ export function matchShortcut(e: KeyLike): ShortcutAction | null {
   const mod = e.ctrlKey || e.metaKey;
   const key = e.key.toLowerCase();
   if (mod) {
+    // Zoom keys, with or without Shift ("+" needs Shift on many layouts).
+    if (key === "=" || key === "+" || key === "add") return "zoomIn";
+    if (key === "-" || key === "_" || key === "subtract") return "zoomOut";
+    if (key === "0") return "zoomReset";
     if (e.shiftKey) return key === "z" ? "redo" : null;
     if (key === "z") return "undo";
     if (key === "y") return "redo";
@@ -59,6 +66,9 @@ export const SHORTCUT_LIST: { keys: string[]; label: MessageKey }[] = [
   { keys: ["Del"], label: "shortcuts.delete" },
   { keys: ["Mod", "E"], label: "shortcuts.extract" },
   { keys: ["Mod", "S"], label: "shortcuts.export" },
+  { keys: ["Mod", "+"], label: "shortcuts.zoomIn" },
+  { keys: ["Mod", "−"], label: "shortcuts.zoomOut" },
+  { keys: ["Mod", "0"], label: "shortcuts.zoomReset" },
   { keys: ["?"], label: "shortcuts.help" },
 ];
 

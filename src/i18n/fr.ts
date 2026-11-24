@@ -43,12 +43,15 @@ export const fr: Messages = {
   "shortcuts.extract": "Extraction (plage de pages ou sélection)",
   "shortcuts.export": "Télécharger le PDF modifié",
   "shortcuts.help": "Afficher cette liste",
+  "shortcuts.zoomIn": "Zoom avant (vue document)",
+  "shortcuts.zoomOut": "Zoom arrière (vue document)",
+  "shortcuts.zoomReset": "Taille réelle (vue document)",
   "shortcuts.hint": "Appuyez sur ? pour afficher les raccourcis clavier",
 
   // Accueil (aucun document)
   "home.title": "Votre boîte à outils PDF, directement sur votre ordinateur",
   "home.subtitle":
-    "Fusionnez, découpez, extrayez, faites pivoter, annotez, compressez et convertissez vos PDF en Word ou Excel. Rien n'est envoyé en ligne : tout se passe sur cet appareil.",
+    "Lisez, annotez, signez et remplissez vos PDF ; fusionnez-les, découpez-les, extrayez des pages, faites-les pivoter, compressez-les et convertissez-les en Word ou Excel. Rien n'est envoyé en ligne : tout se passe sur cet appareil.",
   "home.drop": "Déposez vos fichiers PDF ici",
   "home.dropHint": "ou cliquez pour parcourir",
   "home.feature.organise": "Organiser les pages",
@@ -68,6 +71,29 @@ export const fr: Messages = {
   "toolbar.selectAll": "Tout sélectionner",
   "toolbar.clear": "Effacer la sélection",
   "toolbar.hint": "Cliquez pour sélectionner · faites glisser pour réordonner",
+
+  // Choix de la vue et visionneuse
+  "view.label": "Vue",
+  "view.grid": "Grille des pages",
+  "view.document": "Document",
+  "viewer.prevPage": "Page précédente",
+  "viewer.nextPage": "Page suivante",
+  "viewer.pageNumber": "Numéro de page",
+  "viewer.zoom": "Zoom",
+  "viewer.zoomIn": "Zoom avant (Ctrl +)",
+  "viewer.zoomOut": "Zoom arrière (Ctrl −)",
+  "viewer.fitWidth": "Pleine largeur",
+  "viewer.fitPage": "Page entière",
+  "viewer.select": "Sélectionner et déplacer",
+  "viewer.addText": "Ajouter du texte",
+  "viewer.addImage": "Ajouter une signature ou une image",
+  "viewer.hint":
+    "Ctrl + molette pour zoomer · sélectionnez du texte pour le copier · double-cliquez sur un texte ajouté pour le modifier",
+  "viewer.hintText": "Cliquez sur la page à l'endroit voulu (Échap pour annuler).",
+  "viewer.formatText": "Texte",
+  "viewer.formatImage": "Signature / image",
+  "thumb.annotations": "{count} annotation(s)",
+  "thumb.open": "Double-cliquez pour ouvrir dans la vue document",
 
   // Panneau Pages
   "pages.title": "Pages",
@@ -111,18 +137,38 @@ export const fr: Messages = {
 
   // Panneau Annoter
   "annotate.title": "Annoter",
-  "annotate.description": "Ajoutez du texte ou une signature sur une page.",
-  "annotate.position": "Position",
-  "annotate.page": "Page n°",
-  "annotate.x": "X (0–1 depuis la gauche)",
-  "annotate.y": "Y (0–1 depuis le haut)",
-  "annotate.text": "Annotation de texte",
-  "annotate.textLabel": "Texte",
-  "annotate.fontSize": "Taille de police",
-  "annotate.addText": "Ajouter le texte",
-  "annotate.image": "Signature / image",
-  "annotate.imageDrop": "Choisir un PNG/JPG (30 % de la largeur)",
-  "annotate.imageHint": "L'image est placée à la position X/Y ci-dessus.",
+  "annotate.description":
+    "Ajoutez du texte et des signatures, remplissez les formulaires et lisez le document à tout niveau de zoom.",
+  "annotate.add": "Ajouter sur la page",
+  "annotate.addTextButton": "Ajouter du texte",
+  "annotate.addTextHint": "Cliquez ensuite sur la page à l'endroit voulu.",
+  "annotate.imageDrop": "Ajouter une signature ou une image",
+  "annotate.imageHint": "PNG, JPG, WebP, GIF ou BMP. Elle apparaît au milieu de la page en cours.",
+  "annotate.howTo": "Modifier sur la page",
+  "annotate.tipMove": "Faites glisser un texte ou une signature pour le déplacer.",
+  "annotate.tipEdit": "Double-cliquez sur un texte pour le modifier.",
+  "annotate.tipFormat": "Sélectionnez un texte pour changer sa police, sa taille, son style et sa couleur dans la barre au-dessus de la page.",
+  "annotate.tipResize": "Faites glisser les coins d'une signature pour la redimensionner, ou ses bords pour la remodeler.",
+  "annotate.tipDelete": "Appuyez sur Suppr pour retirer l'élément sélectionné ; les flèches le déplacent finement.",
+  "annotate.forms": "Formulaires",
+  "annotate.formsHint":
+    "Les champs à remplir sont surlignés en bleu sur la page : saisissez du texte, cochez les cases et choisissez les options. Les saisies sont enregistrées dans les champs à l'export.",
+  "annotate.flattenNote":
+    "Les annotations restent modifiables jusqu'à l'export, la compression ou la conversion du document.",
+  "annotate.defaultText": "Texte",
+  "annotate.font": "Police",
+  "annotate.fontSize": "Taille de police (pt)",
+  "annotate.smaller": "Réduire le texte",
+  "annotate.larger": "Agrandir le texte",
+  "annotate.bold": "Gras",
+  "annotate.italic": "Italique",
+  "annotate.colour": "Couleur du texte",
+  "annotate.editText": "Modifier le texte",
+  "annotate.keepRatio": "Conserver les proportions",
+  "annotate.resizeHint": "Coins : redimensionner · bords : remodeler · Maj inverse les proportions",
+  "annotate.remove": "Supprimer (Suppr)",
+  "annotate.imageTitle": "Glisser pour déplacer · poignées pour redimensionner",
+  "annotate.textTitle": "Glisser pour déplacer · double-clic pour modifier",
 
   // Panneau Compresser
   "compress.title": "Compresser",
@@ -144,7 +190,8 @@ export const fr: Messages = {
   "export.title": "Exporter",
   "export.description": "Enregistrez votre travail dans un nouveau PDF.",
   "export.button": "Télécharger le PDF modifié",
-  "export.hint": "Applique l'ordre des pages, les rotations et les suppressions.",
+  "export.hint":
+    "Applique l'ordre des pages, les rotations et les suppressions, et enregistre vos annotations et saisies de formulaire dans les pages.",
 
   // Vignettes
   "thumb.rendering": "Rendu…",
@@ -156,8 +203,6 @@ export const fr: Messages = {
   "busy.splitting": "Découpe…",
   "busy.inserting": "Insertion…",
   "busy.extracting": "Extraction des pages…",
-  "busy.addingText": "Ajout du texte…",
-  "busy.addingImage": "Ajout de l'image…",
   "busy.compressing": "Compression…",
   "busy.toWord": "Conversion en Word…",
   "busy.toWordPage": "Conversion en Word… page {done} sur {total}",
@@ -174,8 +219,7 @@ export const fr: Messages = {
   // Erreurs
   "error.splitPoints":
     "Indiquez au moins un point de découpe valide (ex. 3, 7) dans la plage de pages.",
-  "error.enterText": "Saisissez d'abord du texte.",
-  "error.imageType": "Utilisez une image PNG ou JPG.",
+  "error.imageType": "Cette image est illisible. Utilisez une image PNG, JPG, WebP, GIF ou BMP.",
   "error.loadFirst": "Chargez d'abord un PDF.",
   "error.noSelection": "Sélectionnez d'abord au moins une page.",
   "error.noFile": "Aucun fichier fourni.",

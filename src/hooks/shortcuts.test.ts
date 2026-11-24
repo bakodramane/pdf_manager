@@ -24,6 +24,14 @@ describe("matchShortcut", () => {
     expect(matchShortcut(key("Z", { metaKey: true, shiftKey: true }))).toBe("redo");
   });
 
+  it("maps zoom keys with or without Shift", () => {
+    expect(matchShortcut(key("=", { ctrlKey: true }))).toBe("zoomIn");
+    expect(matchShortcut(key("+", { ctrlKey: true, shiftKey: true }))).toBe("zoomIn");
+    expect(matchShortcut(key("-", { metaKey: true }))).toBe("zoomOut");
+    expect(matchShortcut(key("0", { ctrlKey: true }))).toBe("zoomReset");
+    expect(matchShortcut(key("0"))).toBeNull();
+  });
+
   it("maps single keys", () => {
     expect(matchShortcut(key("Escape"))).toBe("clearSelection");
     expect(matchShortcut(key("Delete"))).toBe("delete");
