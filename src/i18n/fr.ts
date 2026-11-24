@@ -149,6 +149,8 @@ export const fr: Messages = {
   "annotate.tipEdit": "Double-cliquez sur un texte pour le modifier.",
   "annotate.tipFormat": "Sélectionnez un texte pour changer sa police, sa taille, son style et sa couleur dans la barre au-dessus de la page.",
   "annotate.tipResize": "Faites glisser les coins d'une signature pour la redimensionner, ou ses bords pour la remodeler.",
+  "annotate.tipBackground":
+    "Sélectionnez une signature et choisissez Supprimer le fond pour rendre le papier transparent, même sur une photo avec des ombres.",
   "annotate.tipDelete": "Appuyez sur Suppr pour retirer l'élément sélectionné ; les flèches le déplacent finement.",
   "annotate.forms": "Formulaires",
   "annotate.formsHint":
@@ -166,6 +168,11 @@ export const fr: Messages = {
   "annotate.editText": "Modifier le texte",
   "annotate.keepRatio": "Conserver les proportions",
   "annotate.resizeHint": "Coins : redimensionner · bords : remodeler · Maj inverse les proportions",
+  "annotate.removeBackground": "Supprimer le fond",
+  "annotate.removingBackground": "Suppression du fond…",
+  "annotate.strength": "Intensité",
+  "annotate.strengthHint": "Augmentez-la s'il reste des traces de papier ; baissez-la si le trait s'efface.",
+  "annotate.restoreOriginal": "Rétablir l'original",
   "annotate.remove": "Supprimer (Suppr)",
   "annotate.imageTitle": "Glisser pour déplacer · poignées pour redimensionner",
   "annotate.textTitle": "Glisser pour déplacer · double-clic pour modifier",
@@ -220,6 +227,8 @@ export const fr: Messages = {
   "error.splitPoints":
     "Indiquez au moins un point de découpe valide (ex. 3, 7) dans la plage de pages.",
   "error.imageType": "Cette image est illisible. Utilisez une image PNG, JPG, WebP, GIF ou BMP.",
+  "error.noSignature":
+    "Aucune signature n'a été trouvée dans l'image. Essayez une photo avec un trait plus foncé.",
   "error.loadFirst": "Chargez d'abord un PDF.",
   "error.noSelection": "Sélectionnez d'abord au moins une page.",
   "error.noFile": "Aucun fichier fourni.",

@@ -151,6 +151,8 @@ export const en = {
   "annotate.tipEdit": "Double-click a text to change it.",
   "annotate.tipFormat": "Select a text to change its font, size, style, and colour in the bar above the page.",
   "annotate.tipResize": "Drag a signature's corners to resize it, or its edges to reshape it.",
+  "annotate.tipBackground":
+    "Select a signature and choose Remove background to make the paper transparent, even on a photo with shadows.",
   "annotate.tipDelete": "Press Delete to remove the selected item; arrow keys nudge it.",
   "annotate.forms": "Forms",
   "annotate.formsHint":
@@ -168,6 +170,11 @@ export const en = {
   "annotate.editText": "Edit text",
   "annotate.keepRatio": "Keep proportions",
   "annotate.resizeHint": "Corners resize · edges reshape · Shift switches proportions",
+  "annotate.removeBackground": "Remove background",
+  "annotate.removingBackground": "Removing background…",
+  "annotate.strength": "Strength",
+  "annotate.strengthHint": "Raise it if traces of paper remain; lower it if strokes fade.",
+  "annotate.restoreOriginal": "Restore original",
   "annotate.remove": "Remove (Del)",
   "annotate.imageTitle": "Drag to move · drag the handles to resize",
   "annotate.textTitle": "Drag to move · double-click to edit",
@@ -222,6 +229,8 @@ export const en = {
   "error.splitPoints":
     "Provide at least one valid split point (e.g. 3, 7) inside the page range.",
   "error.imageType": "This image could not be read. Use a PNG, JPG, WebP, GIF, or BMP image.",
+  "error.noSignature":
+    "No signature was found in the image. Try a photo with darker strokes.",
   "error.loadFirst": "Load a PDF first.",
   "error.noSelection": "Select at least one page first.",
   "error.noFile": "No file provided.",

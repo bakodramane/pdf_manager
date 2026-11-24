@@ -964,6 +964,7 @@ function AnnotatePanel({ editor, hasPages, showError, view, openDocument, viewer
           <li>{t("annotate.tipEdit")}</li>
           <li>{t("annotate.tipFormat")}</li>
           <li>{t("annotate.tipResize")}</li>
+          <li>{t("annotate.tipBackground")}</li>
           <li>{t("annotate.tipDelete")}</li>
         </ul>
         {count > 0 && (

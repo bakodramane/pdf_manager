@@ -76,6 +76,21 @@ export interface ImageAnnotation extends AnnotationBase {
   mime: "image/png" | "image/jpeg";
   /** Object URL used to show the image on screen. */
   url: string;
+  /**
+   * Set once the background was removed: the image as imported (to adjust
+   * or undo the removal) and the settings used. `crop` is the part of the
+   * original image the cleaned image shows.
+   */
+  original?: { bytes: Uint8Array; mime: "image/png" | "image/jpeg"; url: string };
+  cleanup?: { strength: number; crop: Crop };
+}
+
+/** A region of an image, as fractions of its width and height (0..1). */
+export interface Crop {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
 }
 
 export type Annotation = TextAnnotation | ImageAnnotation;

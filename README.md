@@ -58,6 +58,13 @@ In the Document view (or from the **Annotate** panel):
   middle of the current page. Drag the **corner handles** to resize it
   (proportions kept; *Keep proportions* or `Shift` switches that), or the
   **edge handles** to reshape (stretch) it.
+- **Remove background**: select a signature and choose *Remove background*
+  to make the paper transparent, so only the strokes remain on the page. It
+  works on scans and on phone photos (shadows and uneven lighting are
+  treated as paper), keeps the ink's colour, and trims the empty margins
+  without moving the signature. Adjust the **Strength** slider if traces of
+  paper remain (higher) or faint strokes fade (lower), or choose *Restore
+  original*.
 - **Drag** any text or signature to move it; arrow keys nudge it (`Shift` for
   bigger steps) and `Delete` removes it.
 - Annotations stay editable (and undoable) until the document is exported,
@@ -334,6 +341,7 @@ src/
     pageInfo.ts        # page boxes + fillable form widgets (PDF.js)
     annotations.ts     # annotation geometry + drawing into pages (tested)
     forms.ts           # form filling + keeping fields fillable (tested)
+    background.ts      # signature background removal (tested)
     compress.ts        # object-stream re-packing
     extract.ts         # PDF.js page → text chunks, ruling lines, fills, images
     layout.ts          # layout analysis: lines, paragraphs, tables (pure, tested)
@@ -407,6 +415,8 @@ before/after size.
 - Text annotations use the PDF standard fonts (Helvetica, Times, Courier),
   which cover Western European characters; other characters are replaced
   with "?" in the exported file.
+- PDF readers draw form fields above the page, so a signature placed over a
+  field's box can be partly hidden by that box in the exported file.
 - Signature fields (digital signatures), push buttons, and form scripts
   (calculations, validation) are not supported. Field values are written with
   Helvetica; readers that rebuild appearances may show another font.
