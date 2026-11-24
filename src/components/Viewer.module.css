@@ -105,7 +105,12 @@
 }
 
 .formatHint {
+  flex: 1 1 0;
+  min-width: 0;
   color: var(--faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sizeInput[type="text"] {
@@ -113,6 +118,30 @@
   padding: 0.25rem 0.35rem;
   text-align: center;
   font-size: 0.82rem;
+}
+
+.strength {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.strength input[type="range"] {
+  width: 7rem;
+  accent-color: var(--accent);
+}
+
+.strength output {
+  min-width: 1.2em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* Show transparency behind a selected image (removed background). */
+.annotationSelected:has(img) {
+  background: repeating-conic-gradient(rgba(0, 0, 0, 0.06) 0% 25%, transparent 0% 50%) 0 0 / 12px 12px;
 }
 
 .letter {

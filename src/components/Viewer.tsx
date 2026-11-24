@@ -39,6 +39,15 @@ import {
   type PageBox,
 } from "../pdf/pageInfo";
 import { OFF } from "../pdf/forms";
+import {
+  DEFAULT_STRENGTH,
+  FULL_CROP,
+  MAX_STRENGTH,
+  MIN_STRENGTH,
+  reframe,
+  removeBackground,
+} from "../pdf/background";
+import { decodeRaster, encodePng, imageUrl, readImage } from "./imageTools";
 import { makeId } from "../pdf/loader";
 import { AppError } from "../pdf/errors";
 
@@ -324,6 +333,62 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
     setEditing(null);
   }, [editor, selected]);
 
+  /**
+   * Remove the selected image's background with the given strength, or put
+   * the original image back (`null`). Always starts from the image as
+   * imported; the frame shrinks to the signature (or grows back) without
+   * moving the signature on the page. One undo step.
+   */
+  const [cleaning, setCleaning] = useState(false);
+  const cleanImage = useCallback(
+    async (strength: number | null) => {
+      if (selected?.annotation.kind !== "image") return;
+      const { page, annotation: a } = selected;
+      const original = a.original ?? { bytes: a.bytes, mime: a.mime, url: a.url };
+      const shown = a.cleanup?.crop ?? FULL_CROP;
+      if (strength === null) {
+        if (!a.original) return;
+        update(page.id, a.id, {
+          ...reframe(a, shown, FULL_CROP),
+          ...original,
+          original: undefined,
+          cleanup: undefined,
+        });
+        return;
+      }
+      setCleaning(true);
+      try {
+        // Let the "Removing…" state paint before the pixel work starts.
+        await new Promise((r) => setTimeout(r, 20));
+        const raster = await decodeRaster(original.bytes, original.mime);
+        // Faint signatures: fall back to the gentlest setting before giving up.
+        let result = removeBackground(raster, strength);
+        if (!result && strength > MIN_STRENGTH) {
+          strength = MIN_STRENGTH;
+          result = removeBackground(raster, strength);
+        }
+        if (!result) {
+          onError(t("error.noSignature"));
+          return;
+        }
+        const bytes = await encodePng(result.image);
+        update(page.id, a.id, {
+          ...reframe(a, shown, result.crop),
+          bytes,
+          mime: "image/png",
+          url: imageUrl(bytes, "image/png"),
+          original,
+          cleanup: { strength, crop: result.crop },
+        });
+      } catch {
+        onError(t("error.imageType"));
+      } finally {
+        setCleaning(false);
+      }
+    },
+    [selected, update, onError, t],
+  );
+
   const createText = (page: PageRef, box: PageBox, x: number, y: number) => {
     const angle = (360 - totalRotation(box, page)) % 360;
     const a: TextAnnotation = {
@@ -365,7 +430,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
           height,
           bytes: img.bytes,
           mime: img.mime,
-          url: URL.createObjectURL(new Blob([img.bytes.slice()], { type: img.mime })),
+          url: imageUrl(img.bytes, img.mime),
         };
         editor.addAnnotation(page.id, a);
         setSelection({ pageId: page.id, id: a.id });
@@ -521,6 +586,8 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(function Viewer(
           annotation={selected.annotation}
           lockRatio={lockRatio}
           onLockRatio={setLockRatio}
+          cleaning={cleaning}
+          onCleanup={(strength) => void cleanImage(strength)}
           onText={updateText}
           onEdit={() => setEditing(selected.annotation.id)}
           onRemove={remove}
@@ -682,6 +749,8 @@ function FormatBar({
   annotation: a,
   lockRatio,
   onLockRatio,
+  cleaning,
+  onCleanup,
   onText,
   onEdit,
   onRemove,
@@ -689,6 +758,10 @@ function FormatBar({
   annotation: Annotation;
   lockRatio: boolean;
   onLockRatio: (v: boolean) => void;
+  /** Background removal is running. */
+  cleaning: boolean;
+  /** Remove the background at this strength, or restore the original (null). */
+  onCleanup: (strength: number | null) => void;
   onText: (patch: Partial<TextStyle>) => void;
   onEdit: () => void;
   onRemove: () => void;
@@ -700,6 +773,23 @@ function FormatBar({
     if (!Number.isNaN(n)) onText({ size: clamp(Math.round(n * 2) / 2, 4, 400) });
     setSizeDraft(null);
   };
+
+  // The strength slider previews nothing by itself: the removal re-runs
+  // once the slider rests, as one undo step.
+  const [strengthDraft, setStrengthDraft] = useState<number | null>(null);
+  const cleanupRef = useRef(onCleanup);
+  cleanupRef.current = onCleanup;
+  useEffect(() => {
+    if (strengthDraft === null) return;
+    const timer = setTimeout(() => {
+      cleanupRef.current(strengthDraft);
+      setStrengthDraft(null);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [strengthDraft]);
+  const strength =
+    strengthDraft ?? (a.kind === "image" ? a.cleanup?.strength : undefined) ?? DEFAULT_STRENGTH;
+
   return (
     <div className={styles.formatBar} data-annotation>
       {a.kind === "text" ? (
@@ -783,7 +873,40 @@ function FormatBar({
             <Icon name={lockRatio ? "lock" : "unlock"} size={16} />
             {t("annotate.keepRatio")}
           </button>
-          <span className={styles.formatHint}>{t("annotate.resizeHint")}</span>
+          <span className={styles.divider} />
+          {!a.cleanup ? (
+            <button disabled={cleaning} onClick={() => onCleanup(DEFAULT_STRENGTH)}>
+              <Icon name="eraser" size={16} />
+              {cleaning ? t("annotate.removingBackground") : t("annotate.removeBackground")}
+            </button>
+          ) : (
+            <>
+              <label className={styles.strength} title={t("annotate.strengthHint")}>
+                <Icon name="eraser" size={16} />
+                {t("annotate.strength")}
+                <input
+                  type="range"
+                  min={MIN_STRENGTH}
+                  max={MAX_STRENGTH}
+                  step={1}
+                  value={strength}
+                  disabled={cleaning}
+                  onChange={(e) => setStrengthDraft(Number(e.target.value))}
+                />
+                <output>{cleaning ? "…" : strength}</output>
+              </label>
+              <button className="ghost" disabled={cleaning} onClick={() => onCleanup(null)}>
+                <Icon name="undo" size={16} />
+                {t("annotate.restoreOriginal")}
+              </button>
+            </>
+          )}
+          <span
+            className={styles.formatHint}
+            title={a.cleanup ? t("annotate.strengthHint") : t("annotate.resizeHint")}
+          >
+            {a.cleanup ? t("annotate.strengthHint") : t("annotate.resizeHint")}
+          </span>
         </>
       )}
       <span className={styles.spacer} />
@@ -1347,38 +1470,4 @@ function TextEditor({
       }}
     />
   );
-}
-
-/* ------------------------------------------------------------------ */
-/* Images                                                              */
-/* ------------------------------------------------------------------ */
-
-/**
- * Read an image file for embedding. PNG and JPEG are kept as they are;
- * other formats the browser can decode (WebP, GIF, BMP) become PNG.
- */
-async function readImage(
-  file: File,
-): Promise<{ bytes: Uint8Array; mime: "image/png" | "image/jpeg"; width: number; height: number }> {
-  let bitmap: ImageBitmap;
-  try {
-    bitmap = await createImageBitmap(file);
-  } catch {
-    throw new AppError("imageType", "Unsupported image.");
-  }
-  const { width, height } = bitmap;
-  try {
-    if (file.type === "image/png" || file.type === "image/jpeg") {
-      return { bytes: new Uint8Array(await file.arrayBuffer()), mime: file.type, width, height };
-    }
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    canvas.getContext("2d")?.drawImage(bitmap, 0, 0);
-    const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/png"));
-    if (!blob) throw new AppError("imageType", "Unsupported image.");
-    return { bytes: new Uint8Array(await blob.arrayBuffer()), mime: "image/png", width, height };
-  } finally {
-    bitmap.close();
-  }
 }

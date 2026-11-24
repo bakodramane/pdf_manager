@@ -45,6 +45,8 @@ const PATHS = {
   lock: "M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4",
   unlock: "M5 11h14v10H5zM8 11V7a4 4 0 0 1 7.9-1",
   minus: "M5 12h14",
+  eraser:
+    "M20 20H9l-5-5a2 2 0 0 1 0-2.8L13.2 3a2 2 0 0 1 2.8 0l4 4a2 2 0 0 1 0 2.8L11 19M7.5 10.5l6 6",
   fitWidth: "M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4",
   form: "M4 4h16v16H4zM8 9h8M8 13h8M8 17h4",
   github:
