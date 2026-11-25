@@ -21,6 +21,8 @@ export interface PdfSource {
   bytes: Uint8Array;
   /** Number of pages in the original file. */
   pageCount: number;
+  /** Signatures, scripts, attachments… found on load (for warnings). */
+  findings?: import("./inspect").PdfFindings;
 }
 
 export interface PageRef {

@@ -1,0 +1,21 @@
+# TEMPLATE — not submitted. Replace placeholders with final release values.
+PackageIdentifier: DBako.PDFManager
+PackageVersion: <VERSION>
+InstallerLocale: en-US
+MinimumOSVersion: 10.0.0.0
+InstallerType: nullsoft
+Scope: user
+InstallModes:
+  - interactive
+  - silent
+UpgradeBehavior: install
+ElevationRequirement: elevationProhibited
+Installers:
+  - Architecture: x64
+    InstallerUrl: <URL>
+    InstallerSha256: <SHA256>
+    InstallerSwitches:
+      Silent: /S
+      SilentWithProgress: /S
+ManifestType: installer
+ManifestVersion: 1.6.0

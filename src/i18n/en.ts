@@ -182,10 +182,23 @@ export const en = {
   // Compress panel
   "compress.title": "Compress",
   "compress.description": "Make the document lighter to share.",
+  "compress.profile": "Compression level",
+  "compress.profile.lossless": "Lossless",
+  "compress.profile.losslessHint": "Tidies the file structure and merges duplicate images. Nothing on the pages changes.",
+  "compress.profile.balanced": "Balanced (150 dpi)",
+  "compress.profile.balancedHint": "Also shrinks large images. Good for screen reading and ordinary printing.",
+  "compress.profile.strong": "Strong (100 dpi)",
+  "compress.profile.strongHint": "Smallest files, for sharing by e-mail or slow connections. Images lose visible detail.",
+  "compress.lossyWarning":
+    "This level re-encodes images (lossy): photos and scans lose some detail. Text, drawings, forms and links are kept. The original file on your disk is not changed.",
+  "compress.progress": "Optimising images… {done} of {total}",
+  "compress.noGain":
+    "No reduction was possible at this level ({before} → {after}); the document was left unchanged.",
+  "compress.imagesResult": "{count} image(s) optimised, {skipped} left as they were.",
   "compress.button": "Compress document",
-  "compress.result": "Saved {pct}% ({before} → {after}). Use Export to download.",
+  "compress.result": "{pct} % smaller ({before} → {after}). Use Export to save it.",
   "compress.hint":
-    "Re-packs the PDF structure with object streams. Embedded images are not re-encoded, so gains vary.",
+    "Results depend on the document: scans and photos shrink most; text-only files shrink little. The result replaces the open document (Undo brings the original back) — use Export to save it.",
 
   // Convert panel
   "convert.title": "Convert",
@@ -225,6 +238,152 @@ export const en = {
   "notice.split": "Downloaded {count} parts",
   "notice.dismiss": "Dismiss",
 
+  // Warnings about what a loaded PDF contains
+  "warning.file": "“{name}”:",
+  "warning.signed":
+    "It is digitally signed. Any file exported by PDF Manager is a new file in which that signature is no longer valid.",
+  "warning.scripts":
+    "It contains scripts or actions. PDF Manager never runs them, but exported pages may still carry them.",
+  "warning.attachments": "It contains attached files. PDF Manager does not open them.",
+  "warning.xfa": "It uses an XFA form, which PDF Manager cannot display or fill.",
+
+  // Page tools
+  "nav.tools": "Page tools",
+  "pages.duplicate": "Duplicate",
+  "pages.moveEarlier": "Move earlier",
+  "pages.moveLater": "Move later",
+  "tools.title": "Page tools",
+  "tools.description": "Add pages, number them, mark them, or save them as images.",
+  "tools.blank": "Blank page",
+  "tools.pageSize": "Page size",
+  "tools.blankButton": "Insert a blank page",
+  "tools.insertHint": "New pages go after the last selected page, or at the end.",
+  "tools.blankAdded": "Blank page inserted as page {page}.",
+  "tools.images": "Images to pages",
+  "tools.imageSize": "Same size as the image",
+  "tools.imagesDrop": "Add images (JPG, PNG…) as pages",
+  "tools.imagesHint":
+    "Each image becomes a page, in the order chosen. Camera details (EXIF, location) are not copied into the PDF.",
+  "tools.imagesAdded": "{count} image(s) added as pages.",
+  "tools.numbers": "Page numbers",
+  "tools.position": "Position",
+  "tools.position.bottom-center": "Bottom centre",
+  "tools.position.bottom-right": "Bottom right",
+  "tools.position.top-right": "Top right",
+  "tools.template": "Text",
+  "tools.templateHint": "{n} is replaced by the page number and {total} by the number of pages. Undo removes the numbers.",
+  "tools.start": "First number",
+  "tools.numbersButton": "Add page numbers",
+  "tools.numbersAdded": "Page numbers added.",
+  "tools.watermark": "Watermark",
+  "tools.watermarkText": "Text",
+  "tools.watermarkPlaceholder": "e.g. DRAFT, CONFIDENTIAL",
+  "tools.opacity": "Opacity ({value} %)",
+  "tools.angle": "Angle",
+  "tools.watermarkButton": "Add watermark",
+  "tools.watermarkAdded": "Watermark added.",
+  "tools.watermarkEmpty": "Type the watermark text first.",
+  "tools.watermarkHint":
+    "A watermark is drawn onto the page like any other content. It marks a document; it does not protect it and can be removed with an editor.",
+  "tools.exportImages": "Save pages as images",
+  "tools.format": "Format",
+  "tools.resolution": "Resolution",
+  "tools.exportImagesButton": "Save as images",
+  "tools.exportImagesHint": "One page gives one image; several pages are saved together in a .zip file.",
+  "tools.exporting": "Creating images…",
+  "tools.exportProgress": "Creating images… {done} of {total}",
+
+  // Web edition: offline use and updates
+  "offline.title": "Offline use",
+  "offline.intro":
+    "This web version keeps a copy of the application in your browser so it opens without an internet connection. Your documents are never stored or sent anywhere.",
+  "offline.appReady": "The application is ready to work offline.",
+  "offline.appNotReady": "The application is not available offline yet (reload once while connected).",
+  "offline.ocrTitle": "Text recognition (OCR) offline",
+  "offline.ocrIntro":
+    "Recognition needs the engine (about {engine}) and a language pack. They are downloaded only when you ask, then kept for offline use.",
+  "offline.packReady": "available offline",
+  "offline.packMissing": "not downloaded",
+  "offline.prepare": "Make available offline",
+  "offline.preparing": "Downloading… {done} of {total} files",
+  "offline.notReady": "Offline support is not active yet. Reload the page once and try again.",
+  "offline.failed": "The download failed. Check your connection and try again.",
+  "offline.never": "Only application files are stored. PDFs, images, signatures and results are never saved by this site.",
+  "offline.reset": "Remove offline data",
+  "offline.resetConfirm":
+    "Remove the offline copy of the application, the language packs and your language preference? Your own files are not affected.",
+  "update.available": "A new version of PDF Manager is ready.",
+  "update.availableWithDoc":
+    "A new version of PDF Manager is ready. Export your work first: reloading closes the open document.",
+  "update.reload": "Reload now",
+  "update.later": "Later",
+
+  // OCR
+  "nav.ocr": "Recognise text",
+  "busy.cancel": "Cancel",
+  "busy.cancelling": "Cancelling…",
+  "ocr.title": "Recognise text (OCR)",
+  "ocr.description":
+    "Turn scanned pages into selectable, searchable text — on this device, in English and French.",
+  "ocr.settings": "Settings",
+  "ocr.scope": "Pages",
+  "ocr.scope.all": "All pages",
+  "ocr.scope.selected": "Selected pages",
+  "ocr.scope.range": "Page range",
+  "ocr.language": "Language of the document",
+  "ocr.lang.both": "English and French",
+  "ocr.lang.eng": "English",
+  "ocr.lang.fra": "French",
+  "ocr.quality": "Quality",
+  "ocr.quality.fast": "Fast (200 dpi) — for clean, large print",
+  "ocr.quality.standard": "Standard (300 dpi) — recommended",
+  "ocr.quality.high": "High (400 dpi) — small print; slower, more memory",
+  "ocr.includeText": "Also recognise pages that already contain text",
+  "ocr.includeTextWarning":
+    "Pages with existing text will get a second, OCR text layer: searches and copies may show the text twice.",
+  "ocr.button": "Recognise text",
+  "ocr.offlineDesktop": "Works offline: the recognition engine and the English and French models are included in the app.",
+  "ocr.offlineWeb":
+    "The recognition engine and language model ({size}) are loaded from this site the first time, then processing happens in your browser. Nothing is uploaded.",
+  "ocr.allHadText": "Every chosen page already contains text, so nothing needed recognising.",
+  "ocr.offlineWebNoSize":
+    "The recognition engine and language model are loaded from this site, then processing happens in your browser. Nothing is uploaded.",
+  "ocr.busy.starting": "Preparing text recognition…",
+  "ocr.busy.page": "Recognising page {page} ({done} of {total})…",
+  "ocr.busy.building": "Building the file…",
+  "ocr.done": "Text recognised on {count} page(s).",
+  "ocr.cancelled": "Recognition cancelled. Results kept for {count} page(s) (partial).",
+  "ocr.someFailed": "Recognition failed on page(s) {pages}. You can retry them.",
+  "ocr.results": "Results",
+  "ocr.stale": "The document changed since recognition. Run it again before saving a searchable PDF or converting.",
+  "ocr.summary": "{done} page(s) recognised, {skipped} skipped (already text), {failed} failed.",
+  "ocr.skippedText": "Skipped because they already contain text: page(s) {pages}.",
+  "ocr.lowConfidence":
+    "Low recognition confidence on page(s) {pages}. Check the text carefully; a cleaner or higher-resolution scan may help.",
+  "ocr.retryFailed": "Retry failed pages",
+  "ocr.saveSearchable": "Save searchable PDF",
+  "ocr.copy": "Copy text",
+  "ocr.saveText": "Save as .txt",
+  "ocr.toWord": "Word (from OCR)",
+  "ocr.toExcel": "Excel (from OCR)",
+  "ocr.convertHint":
+    "Word and Excel files made from recognised text are approximate: check names, numbers and dates before relying on them.",
+  "ocr.copied": "Text copied to the clipboard.",
+  "ocr.copyFailed": "The text could not be copied. Use “Save as .txt” instead.",
+  "ocr.pageLabel": "Page {page}",
+  "ocr.pageText": "Recognised text of page {page}",
+  "ocr.confidence": "confidence {value} %",
+  "ocr.low": "check carefully",
+  "ocr.editHint":
+    "You can correct the text above; corrections are used for “Copy text” and “Save as .txt”. The searchable PDF uses the recognised words and their positions.",
+  "ocr.limitsTitle": "Good to know",
+  "ocr.limit.confidence":
+    "Confidence is the engine’s own estimate, not a guarantee. Never treat recognised legal, financial or official figures as verified.",
+  "ocr.limit.orientation":
+    "Pages must be upright: rotate sideways or upside-down pages first (Pages tab).",
+  "ocr.limit.layout":
+    "The searchable PDF keeps each page exactly as it looks; only invisible text is added. Existing digital signatures will no longer be valid.",
+
   // Errors
   "error.splitPoints":
     "Provide at least one valid split point (e.g. 3, 7) inside the page range.",
@@ -233,13 +392,22 @@ export const en = {
     "No signature was found in the image. Try a photo with darker strokes.",
   "error.loadFirst": "Load a PDF first.",
   "error.noSelection": "Select at least one page first.",
+  "error.unsupportedChars":
+    "Some annotation text uses characters that cannot be written into the PDF with the bundled fonts: {chars}. Remove or replace them and export again.",
   "error.noFile": "No file provided.",
   "error.notPdf": "“{name}” is not a PDF file.",
   "error.empty": "“{name}” is empty.",
   "error.tooLarge": "“{name}” is too large (max {max} MB).",
   "error.invalid": "“{name}” does not look like a valid PDF.",
   "error.encrypted":
-    "“{name}” is password-protected. Remove the password and try again.",
+    "“{name}” is encrypted (password-protected). Editing encrypted PDFs is not supported: open it in the software that created it, save an unprotected copy if you are allowed to, and try again.",
+  "error.totalTooLarge":
+    "Opening “{name}” would use more than {max} MB of memory for documents. Close the current document (or some files) and try again.",
+  "error.tooManyPages":
+    "Opening “{name}” would bring the total above {max} pages. Close the current document and try again.",
+  "error.tooManyFiles": "Too many files at once (maximum {max}). Add them in smaller groups.",
+  "error.imageTooLarge":
+    "This image is too large (maximum {max} megapixels). Use a smaller image.",
   "error.corrupted": "“{name}” could not be read — it may be corrupted.",
   "error.noPages": "“{name}” has no pages.",
   "error.nothingToExport": "Nothing to export — the document has no pages.",

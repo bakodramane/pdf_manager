@@ -1,16 +1,49 @@
 import { PDFDocument } from "pdf-lib";
+import {
+  PROFILES,
+  deduplicateOnly,
+  optimiseImages,
+  type CompressionProfile,
+  type ImageCodec,
+  type ImageReport,
+} from "./compressImages";
+
+export type { CompressionProfile } from "./compressImages";
+
+export interface CompressResult {
+  bytes: Uint8Array;
+  /** Image statistics (null for the lossless profile). */
+  images: ImageReport | null;
+  /** Duplicate images merged (all profiles). */
+  deduplicated: number;
+}
 
 /**
- * "Compress" in a browser-only app is limited. pdf-lib cannot re-encode
- * embedded images, so the realistic wins come from object-stream packing and
- * dropping redundant structure. We re-save with object streams enabled, which
- * for many PDFs (especially ones exported by office software) meaningfully
- * reduces size. See README for the honest limitations.
+ * Compress a PDF.
+ * - "lossless": rewrites the structure with object streams and merges
+ *   byte-identical images. Page content is unchanged.
+ * - "balanced" / "strong": additionally downsample and re-encode large
+ *   images as JPEG (lossy). Text, vectors, fonts, forms and annotations
+ *   are kept as they are.
+ * The caller compares sizes and keeps the original when nothing is gained.
  */
-export async function compressPdf(bytes: Uint8Array): Promise<Uint8Array> {
+export async function compressPdf(
+  bytes: Uint8Array,
+  profile: CompressionProfile = "lossless",
+  codec?: ImageCodec,
+  signal?: AbortSignal,
+  onProgress?: (done: number, total: number) => void,
+): Promise<CompressResult> {
   const doc = await PDFDocument.load(bytes, { updateMetadata: false });
-  return doc.save({
-    useObjectStreams: true,
-    addDefaultPage: false,
-  });
+  let images: ImageReport | null = null;
+  let deduplicated: number;
+  if (profile === "lossless") {
+    deduplicated = deduplicateOnly(doc);
+  } else {
+    if (!codec) throw new Error("An image codec is required for lossy profiles.");
+    images = await optimiseImages(doc, PROFILES[profile], codec, signal, onProgress);
+    deduplicated = images.deduplicated;
+  }
+  const out = await doc.save({ useObjectStreams: true, addDefaultPage: false });
+  return { bytes: out, images, deduplicated };
 }

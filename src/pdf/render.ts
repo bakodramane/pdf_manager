@@ -10,11 +10,43 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 // makes network requests — required for the Electron offline build.
 // With base: './', import.meta.env.BASE_URL is './' in production and '/' in
 // dev; both correctly resolve to the public/ assets served by Vite or Electron.
-const BASE = import.meta.env.BASE_URL;
-const CMAP_URL = `${BASE}pdfjs/cmaps/`;
-const FONT_URL = `${BASE}pdfjs/standard_fonts/`;
+// These must be absolute: PDF.js resolves them inside its worker, where a
+// relative "./pdfjs/" would point below assets/ and 404.
+const assetUrl = (path: string) =>
+  typeof document === "undefined" ? `${import.meta.env.BASE_URL}${path}` : new URL(path, document.baseURI).href;
+const CMAP_URL = assetUrl("pdfjs/cmaps/");
+const FONT_URL = assetUrl("pdfjs/standard_fonts/");
+// JPEG 2000 / JBIG2 decoders and colour management (PDF.js 5+) are WASM
+// modules, also bundled locally (scripts/copy-assets.mjs).
+const WASM_URL = assetUrl("pdfjs/wasm/");
+const ICC_URL = assetUrl("pdfjs/iccs/");
 
-const docCache = new Map<string, Promise<PDFDocumentProxy>>();
+/**
+ * Options applied to every PDF.js document the app opens. PDF files are
+ * untrusted input: nothing here lets a document run code or reach the
+ * network.
+ * - No `url`: documents are always passed as bytes, never fetched.
+ * - `enableXfa: false`: XFA forms (an XML/JS form language) are not rendered.
+ * - PDF.js only executes embedded document JavaScript through the separate
+ *   viewer "scripting" sandbox, which this app never loads.
+ * - Assets (CMaps, fonts, WASM, ICC) resolve to the app's own origin.
+ */
+export const SAFE_DOCUMENT_OPTIONS = {
+  cMapUrl: CMAP_URL,
+  cMapPacked: true,
+  standardFontDataUrl: FONT_URL,
+  wasmUrl: WASM_URL,
+  iccUrl: ICC_URL,
+  enableXfa: false,
+  useSystemFonts: false,
+  stopAtErrors: false,
+} as const;
+
+interface CachedDoc {
+  task: ReturnType<typeof pdfjs.getDocument>;
+  promise: Promise<PDFDocumentProxy>;
+}
+const docCache = new Map<string, CachedDoc>();
 
 /** Get (and cache) a PDF.js document for a source's bytes. */
 export function getRenderDoc(
@@ -22,24 +54,21 @@ export function getRenderDoc(
   bytes: Uint8Array,
 ): Promise<PDFDocumentProxy> {
   const existing = docCache.get(sourceId);
-  if (existing) return existing;
+  if (existing) return existing.promise;
   // PDF.js transfers/detaches the buffer, so pass a copy to keep source bytes
   // intact for pdf-lib.
   const copy = bytes.slice();
-  const task = pdfjs.getDocument({
-    data: copy,
-    cMapUrl: CMAP_URL,
-    cMapPacked: true,
-    standardFontDataUrl: FONT_URL,
-  }).promise;
-  docCache.set(sourceId, task);
-  return task;
+  const task = pdfjs.getDocument({ data: copy, ...SAFE_DOCUMENT_OPTIONS });
+  docCache.set(sourceId, { task, promise: task.promise });
+  return task.promise;
 }
 
 export function dropRenderDoc(sourceId: string): void {
   const t = docCache.get(sourceId);
   docCache.delete(sourceId);
-  void t?.then((d) => d.destroy()).catch(() => undefined);
+  // Destroying the loading task also tears down the document and its worker
+  // port, freeing decoded pages, fonts and images.
+  void t?.task.destroy().catch(() => undefined);
 }
 
 export async function renderPageThumbnail(
@@ -60,6 +89,7 @@ export async function renderPageThumbnail(
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Could not create a 2D canvas context.");
 
-  await page.render({ canvasContext: ctx, viewport }).promise;
+  await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+  page.cleanup();
   return canvas.toDataURL("image/png");
 }

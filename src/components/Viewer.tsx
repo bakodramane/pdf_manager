@@ -48,6 +48,7 @@ import {
   removeBackground,
 } from "../pdf/background";
 import { decodeRaster, encodePng, imageUrl, readImage } from "./imageTools";
+import { LIMITS } from "../pdf/limits";
 import { makeId } from "../pdf/loader";
 import { AppError } from "../pdf/errors";
 
@@ -94,7 +95,7 @@ const MAX_ZOOM = ZOOM_STEPS[ZOOM_STEPS.length - 1];
 const PAD = 24; // around the pages, px
 const GAP = 16; // between pages, px
 /** Largest canvas rendered per page (pixels); beyond this it is upscaled. */
-const MAX_CANVAS_PIXELS = 16_000_000;
+const MAX_CANVAS_PIXELS = LIMITS.maxRenderPixels;
 const DEFAULT_BOX: PageBox = { x: 0, y: 0, width: 612, height: 792, rotate: 0 };
 const DEFAULT_STYLE: TextStyle = {
   size: 14,
@@ -1053,6 +1054,7 @@ function CanvasLayer({
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
         const render = page.render({
+          canvas,
           canvasContext: ctx,
           viewport,
           // Fillable fields are drawn by the form layer instead.

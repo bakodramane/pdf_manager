@@ -1,9 +1,9 @@
 {
   "name": "pdf-manager",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0-beta.1",
   "type": "module",
-  "description": "Private, local-only PDF editor by Dramane Bako",
+  "description": "Private, local-first PDF editor with offline OCR (English/French) by Dramane Bako",
   "author": {
     "name": "D.Bako",
     "url": "https://github.com/bakodramane"
@@ -13,39 +13,65 @@
   "scripts": {
     "dev": "vite",
     "electron:dev": "concurrently -k -n vite,electron -c cyan,yellow \"vite\" \"wait-on tcp:5173 && electron .\"",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/third-party-notices.mjs",
     "preview": "vite preview",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dist:portable": "npm run build && electron-builder --win portable",
-    "dist:installer": "npm run build && electron-builder --win nsis",
-    "dist": "npm run build && electron-builder --win portable nsis"
+    "dist:portable": "npm run build && npm run electron:install && electron-builder --win portable",
+    "dist:installer": "npm run build && npm run electron:install && electron-builder --win nsis",
+    "dist": "npm run build && npm run electron:install && electron-builder --win portable nsis",
+    "assets": "node scripts/copy-assets.mjs",
+    "predev": "npm run assets",
+    "prebuild": "npm run assets",
+    "pretest": "npm run assets",
+    "test:e2e": "playwright test --trace off",
+    "test:e2e:electron": "playwright test --project=electron --trace off",
+    "test:e2e:web": "playwright test --project=web --trace off",
+    "bench:ocr": "OCR_BENCHMARK_OUT=docs/benchmarks/ocr-latest.json vitest run src/pdf/ocr/ocr.integration.test.ts",
+    "electron:install": "node node_modules/electron/install.js"
   },
-  "dependencies": {},
   "devDependencies": {
-    "@types/react": "18.3.18",
+    "@eslint/js": "9.39.5",
+    "@expo-google-fonts/noto-sans": "0.4.2",
+    "@pdf-lib/fontkit": "1.1.1",
+    "@playwright/test": "1.63.0",
+    "@tesseract.js-data/eng": "1.0.0",
+    "@tesseract.js-data/fra": "1.0.0",
+    "@types/react": "18.3.32",
     "@types/react-dom": "18.3.5",
-    "@typescript-eslint/eslint-plugin": "8.21.0",
-    "@typescript-eslint/parser": "8.21.0",
-    "@vitejs/plugin-react": "4.3.4",
-    "concurrently": "10.0.3",
-    "docx": "9.5.1",
-    "electron": "42.4.1",
-    "electron-builder": "26.15.3",
-    "eslint": "8.57.1",
-    "eslint-plugin-react-hooks": "5.1.0",
-    "eslint-plugin-react-refresh": "0.4.18",
+    "@vitejs/plugin-react": "6.3.0",
+    "concurrently": "10.0.7",
+    "docx": "9.16.0",
+    "electron": "45.5.0",
+    "electron-builder": "26.18.0",
+    "eslint": "9.39.5",
+    "eslint-plugin-react-hooks": "5.2.0",
+    "eslint-plugin-react-refresh": "0.4.26",
     "exceljs": "4.4.0",
-    "jsdom": "25.0.1",
+    "globals": "17.14.0",
+    "jsdom": "31.0.1",
+    "jszip": "3.10.2",
     "pdf-lib": "1.17.1",
-    "pdfjs-dist": "4.10.38",
+    "pdfjs-dist": "6.5.438",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "typescript": "5.7.3",
-    "vite": "5.4.11",
-    "vitest": "2.1.8",
-    "wait-on": "9.0.10"
-  }
+    "tesseract.js": "7.0.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.74.0",
+    "vite": "8.3.8",
+    "vitest": "5.1.1",
+    "wait-on": "9.5.1",
+    "wasm-feature-detect": "1.10.1"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "11.1.1"
+    }
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "dependencies": {}
 }

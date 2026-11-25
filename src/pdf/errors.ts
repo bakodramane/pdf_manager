@@ -8,6 +8,10 @@ export type ErrorCode =
   | "notPdf"
   | "empty"
   | "tooLarge"
+  | "totalTooLarge"
+  | "tooManyPages"
+  | "tooManyFiles"
+  | "imageTooLarge"
   | "invalid"
   | "encrypted"
   | "corrupted"
@@ -16,7 +20,8 @@ export type ErrorCode =
   | "missingSource"
   | "invalidRange"
   | "rangeOutOfBounds"
-  | "imageType";
+  | "imageType"
+  | "unsupportedChars";
 
 export class AppError extends Error {
   constructor(

@@ -1,8 +1,17 @@
 import { PDFDocument } from "pdf-lib";
 import type { PageRef, PdfSource } from "./types";
 import { AppError, type ErrorCode } from "./errors";
+import { LIMITS, toMb, type Limits } from "./limits";
+import { inspectPdf } from "./inspect";
 
-export const MAX_FILE_BYTES = 200 * 1024 * 1024; // 200 MB safety ceiling
+/** Largest single file accepted (see limits.ts for all limits). */
+export const MAX_FILE_BYTES = LIMITS.maxFileBytes;
+
+/** What is already loaded, for the total-size and page-count budgets. */
+export interface LoadBudget {
+  loadedBytes: number;
+  loadedPages: number;
+}
 
 export class PdfValidationError extends AppError {
   constructor(
@@ -35,6 +44,8 @@ function looksLikePdf(bytes: Uint8Array): boolean {
  */
 export async function loadPdfFile(
   file: File,
+  budget: LoadBudget = { loadedBytes: 0, loadedPages: 0 },
+  limits: Limits = LIMITS,
 ): Promise<{ source: PdfSource; pages: PageRef[] }> {
   if (!file) {
     throw new PdfValidationError("noFile", "No file provided.");
@@ -48,11 +59,19 @@ export async function loadPdfFile(
   if (file.size === 0) {
     throw new PdfValidationError("empty", `"${file.name}" is empty.`, { name: file.name });
   }
-  if (file.size > MAX_FILE_BYTES) {
-    const max = Math.round(MAX_FILE_BYTES / (1024 * 1024));
+  if (file.size > limits.maxFileBytes) {
+    const max = toMb(limits.maxFileBytes);
     throw new PdfValidationError(
       "tooLarge",
       `"${file.name}" is too large (max ${max} MB).`,
+      { name: file.name, max },
+    );
+  }
+  if (budget.loadedBytes + file.size > limits.maxTotalBytes) {
+    const max = toMb(limits.maxTotalBytes);
+    throw new PdfValidationError(
+      "totalTooLarge",
+      `Opening "${file.name}" would exceed the ${max} MB in-memory budget.`,
       { name: file.name, max },
     );
   }
@@ -72,9 +91,10 @@ export async function loadPdfFile(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (/encrypt/i.test(msg)) {
+      // pdf-lib cannot decrypt, and the app never bypasses encryption.
       throw new PdfValidationError(
         "encrypted",
-        `"${file.name}" is password-protected. Remove the password and try again.`,
+        `"${file.name}" is encrypted (password-protected). Editing encrypted PDFs is not supported.`,
         { name: file.name },
       );
     }
@@ -90,8 +110,23 @@ export async function loadPdfFile(
     throw new PdfValidationError("noPages", `"${file.name}" has no pages.`, { name: file.name });
   }
 
+  if (budget.loadedPages + pageCount > limits.maxTotalPages) {
+    throw new PdfValidationError(
+      "tooManyPages",
+      `Opening "${file.name}" would exceed ${limits.maxTotalPages} pages in total.`,
+      { name: file.name, max: limits.maxTotalPages },
+    );
+  }
+
+  let findings: PdfSource["findings"];
+  try {
+    findings = inspectPdf(doc);
+  } catch {
+    findings = undefined;
+  }
+
   const id = makeId("src");
-  const source: PdfSource = { id, name: file.name, bytes, pageCount };
+  const source: PdfSource = { id, name: file.name, bytes, pageCount, findings };
   const pages: PageRef[] = Array.from({ length: pageCount }, (_, i) => ({
     id: makeId("pg"),
     sourceId: id,

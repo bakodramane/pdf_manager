@@ -22,6 +22,7 @@
   --danger-soft: rgba(217, 61, 61, 0.1);
   --ok: #1f9d5c;
   --ok-soft: rgba(31, 157, 92, 0.12);
+  --warn: #b45309;
   --word: #2b6cdf;
   --excel: #1e8a4f;
 
@@ -64,6 +65,7 @@
     --danger-soft: rgba(240, 98, 98, 0.14);
     --ok: #3cc77f;
     --ok-soft: rgba(60, 199, 127, 0.14);
+    --warn: #f2a93b;
     --word: #5b93f5;
     --excel: #3cbf76;
 

@@ -1,0 +1,24 @@
+name: Bug report / Signaler un problème
+description: Something does not work as expected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Security issues: please use private reporting (see SECURITY.md), not this form. Ne joignez pas de documents personnels ou confidentiels."
+  - type: dropdown
+    id: edition
+    attributes:
+      label: Edition
+      options: [Windows installer, Windows portable, Web (browser)]
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes: { label: Version (Credits dialog) }
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes: { label: Steps to reproduce / Étapes }
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes: { label: Expected and actual result / Résultat attendu et obtenu }

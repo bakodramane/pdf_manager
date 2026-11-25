@@ -100,9 +100,5 @@ export function downloadBytes(
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/** Produce a sensible output filename from a source name + suffix. */
-export function deriveName(base: string, suffix: string, ext = "pdf"): string {
-  const dot = base.lastIndexOf(".");
-  const stem = dot > 0 ? base.slice(0, dot) : base;
-  return `${stem}${suffix}.${ext}`;
-}
+/** Safe output file names (re-exported for existing callers). */
+export { deriveName } from "./filenames";

@@ -1,0 +1,96 @@
+# Continuous integration: every pull request and every push to main.
+# Runs untrusted PR code with a read-only token and no secrets. Also called
+# by release.yml (workflow_call) so releases run exactly the same checks.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Lint, types, unit, build, E2E (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: System packages (Poppler for independent PDF checks, Xvfb for Electron)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends poppler-utils xvfb
+      - name: Install (lockfile only)
+        run: npm ci
+      - name: Audit (fail on high/critical)
+        run: npm audit --audit-level=high
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Electron binary and Playwright browser (versions pinned by the lockfile)
+        run: |
+          npm run electron:install
+          npx playwright install --with-deps chromium
+      - name: End-to-end tests (Electron + web)
+        run: xvfb-run -a npm run test:e2e
+        env:
+          E2E_NO_SANDBOX: "1"
+      - name: Shipped-component SBOM and notices
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: build-meta
+          path: build-meta/
+          retention-days: 7
+
+  windows-package:
+    name: Windows packages (UNSIGNED development build)
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Electron binary (downloaded on demand since Electron 45; checksum-verified)
+        run: npm run electron:install
+      - name: Portable + per-user NSIS installer (unsigned)
+        run: npx electron-builder --win portable nsis --publish never
+      - name: Signature report (informational)
+        shell: pwsh
+        run: ./scripts/verify-signatures.ps1 -Path release
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: UNSIGNED-dev-windows-x64
+          path: |
+            release/*.exe
+          retention-days: 7
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # v5.0.1
+        with:
+          fail-on-severity: high
+          deny-licenses: GPL-2.0-only, GPL-3.0-only, AGPL-3.0-only, AGPL-3.0-or-later

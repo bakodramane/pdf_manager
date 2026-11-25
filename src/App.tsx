@@ -5,7 +5,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import styles from "./App.module.css";
@@ -14,36 +13,46 @@ import { FileDrop } from "./components/FileDrop";
 import { PageGrid } from "./components/PageGrid";
 import { Icon, type IconName } from "./components/Icon";
 import { Dialog } from "./components/Dialog";
+import { PanelHeader, Section } from "./components/Panel";
+import { OcrPanel } from "./components/OcrPanel";
+import { ToolsPanel } from "./components/ToolsPanel";
+import { OfflinePanel } from "./components/OfflinePanel";
+import { PWA_SUPPORTED, applyUpdate, onUpdateAvailable } from "./pwa";
 import { Viewer, type ViewerHandle, type Zoom } from "./components/Viewer";
 import { useShortcuts } from "./hooks/useShortcuts";
 import { SHORTCUT_LIST, keyLabel, type ShortcutAction } from "./hooks/shortcuts";
 import { assemblePdf, deriveName, downloadBytes } from "./pdf/assemble";
 import { extractPages, parsePageRanges, splitIntoRanges } from "./pdf/operations";
-import { compressPdf } from "./pdf/compress";
+import { compressPdf, type CompressionProfile } from "./pdf/compress";
+import { formatBytes } from "./format";
 import { dropRenderDoc, getRenderDoc } from "./pdf/render";
 import { pdfToDocx, pdfToXlsx } from "./pdf/convert";
 import { AppError } from "./pdf/errors";
+import { hasFindings } from "./pdf/inspect";
+import type { PdfSource } from "./pdf/types";
 import { LANGUAGES, useI18n, type Lang, type MessageKey } from "./i18n";
 import { AUTHOR } from "./about";
 import { onDesktopMenuCommand, setDesktopLanguage, type MenuCommand } from "./desktop";
 
-type Tab = "pages" | "merge" | "annotate" | "compress" | "convert" | "export";
+type Tab = "pages" | "merge" | "tools" | "annotate" | "ocr" | "compress" | "convert" | "export";
 
 const TABS: { id: Tab; label: MessageKey; icon: IconName }[] = [
   { id: "pages", label: "nav.pages", icon: "pages" },
   { id: "merge", label: "nav.merge", icon: "merge" },
+  { id: "tools", label: "nav.tools", icon: "tools" },
   { id: "annotate", label: "nav.annotate", icon: "annotate" },
+  { id: "ocr", label: "nav.ocr", icon: "scan" },
   { id: "compress", label: "nav.compress", icon: "compress" },
   { id: "convert", label: "nav.convert", icon: "convert" },
   { id: "export", label: "nav.export", icon: "export" },
 ];
 
 type View = "grid" | "document";
-type Notice = { kind: "error" | "success"; text: string };
+type Notice = { kind: "error" | "success" | "warning"; text: string };
 
 /** App icon (public/icon.png), also used as the window and installer icon. */
 const LOGO_URL = `${import.meta.env.BASE_URL}icon.png`;
-type DialogId = "credits" | "shortcuts";
+type DialogId = "credits" | "shortcuts" | "offline";
 
 export default function App() {
   const { t, lang } = useI18n();
@@ -88,6 +97,29 @@ export default function App() {
     (text: string) => setNotice({ kind: "success", text }),
     [],
   );
+  const showWarning = useCallback(
+    (text: string) => setNotice({ kind: "warning", text }),
+    [],
+  );
+
+  /** Warnings about what loaded files contain (signatures, scripts, …). */
+  const findingsText = useCallback(
+    (sources: PdfSource[]): string => {
+      const lines: string[] = [];
+      for (const src of sources) {
+        const f = src.findings;
+        if (!f || !hasFindings(f)) continue;
+        const parts: string[] = [];
+        if (f.signed) parts.push(t("warning.signed"));
+        if (f.javascript || f.externalActions) parts.push(t("warning.scripts"));
+        if (f.attachments) parts.push(t("warning.attachments"));
+        if (f.xfa) parts.push(t("warning.xfa"));
+        lines.push(`${t("warning.file", { name: src.name })} ${parts.join(" ")}`);
+      }
+      return lines.join("\n");
+    },
+    [t],
+  );
 
   // Success notices fade on their own; errors stay until dismissed.
   useEffect(() => {
@@ -96,17 +128,26 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [notice]);
 
-  /** Run an async action with a global loading state + error capture. */
+  /** Abort controller of the running cancellable action, if any. */
+  const [cancelRun, setCancelRun] = useState<AbortController | null>(null);
+
+  /**
+   * Run an async action with a global loading state + error capture. A
+   * cancellable action gets an AbortSignal and a Cancel button.
+   */
   const run = useCallback<RunFn>(
-    async (label, fn) => {
+    async (label, fn, options) => {
       setNotice(null);
       setBusy(label);
+      const controller = new AbortController();
+      if (options?.cancellable) setCancelRun(controller);
       try {
-        await fn((status) => setBusy(status));
+        await fn((status) => setBusy(status), controller.signal);
       } catch (err) {
-        showError(formatError(err));
+        if (!controller.signal.aborted) showError(formatError(err));
       } finally {
         setBusy(null);
+        setCancelRun(null);
       }
     },
     [formatError, showError],
@@ -115,10 +156,15 @@ export default function App() {
   const addFiles = useCallback(
     (files: File[]) =>
       run(t("busy.loading"), async () => {
-        const errs = await editor.addFiles(files);
-        if (errs.length) showError(errs.map(formatError).join("\n"));
+        const { errors, loaded } = await editor.addFiles(files);
+        if (errors.length) {
+          showError(errors.map(formatError).join("\n"));
+          return;
+        }
+        const warning = findingsText(loaded);
+        if (warning) showWarning(warning);
       }),
-    [editor, run, t, showError, formatError],
+    [editor, run, t, showError, showWarning, formatError, findingsText],
   );
 
   /** Assemble current working order into bytes (shared by export/convert). */
@@ -251,6 +297,9 @@ export default function App() {
     }
   };
   useEffect(() => onDesktopMenuCommand((command) => menuHandler.current(command)), []);
+  // Web edition: a new version is ready; reload only when the user agrees.
+  const [updateReady, setUpdateReady] = useState(false);
+  useEffect(() => onUpdateAvailable(() => setUpdateReady(true)), []);
   useEffect(() => setDesktopLanguage(lang), [lang]);
   const ctx: PanelCtx = {
     editor,
@@ -350,7 +399,38 @@ export default function App() {
         <aside className={styles.panel}>
           {tab === "pages" && <PagesPanel {...ctx} />}
           {tab === "merge" && <MergeSplitPanel {...ctx} />}
+          {tab === "tools" && (
+            <ToolsPanel
+              pages={pages}
+              selected={selected}
+              hasPages={hasPages}
+              baseName={baseName}
+              assemble={assemble}
+              run={run}
+              insertPdf={async (bytes, name, after) => {
+                const { error } = await editor.insertFromFile(
+                  new File([bytes.slice()], name, { type: "application/pdf" }),
+                  after,
+                );
+                if (error) throw error;
+              }}
+              replaceAll={editor.replaceWithBytes}
+              showSuccess={showSuccess}
+            />
+          )}
           {tab === "annotate" && <AnnotatePanel {...ctx} />}
+          {tab === "ocr" && (
+            <OcrPanel
+              pages={pages}
+              selected={selected}
+              hasPages={hasPages}
+              baseName={baseName}
+              assemble={assemble}
+              run={run}
+              showSuccess={showSuccess}
+              showError={showError}
+            />
+          )}
           {tab === "compress" && <CompressPanel {...ctx} />}
           {tab === "convert" && <ConvertPanel {...ctx} />}
           {tab === "export" && <ExportPanel {...ctx} />}
@@ -393,6 +473,12 @@ export default function App() {
           <Icon name="shield" size={12} />
           {t("app.privacyNote")}
         </span>
+        {PWA_SUPPORTED && (
+          <button className={styles.footerHint} onClick={() => setDialog("offline")}>
+            <Icon name="shield" size={12} />
+            {t("offline.title")}
+          </button>
+        )}
         <button className={styles.footerHint} onClick={() => setDialog("shortcuts")}>
           <Icon name="keyboard" size={12} />
           {t("shortcuts.hint")}
@@ -420,6 +506,19 @@ export default function App() {
       >
         <CreditsContent />
       </Dialog>
+      <Dialog open={dialog === "offline"} onClose={() => setDialog(null)} title={t("offline.title")}>
+        <OfflinePanel />
+      </Dialog>
+      {updateReady && (
+        <div className={[styles.toast, styles.toastWarning].join(" ")} role="status">
+          <Icon name="info" size={18} />
+          <div className={styles.toastText}>{hasPages ? t("update.availableWithDoc") : t("update.available")}</div>
+          <button onClick={applyUpdate}>{t("update.reload")}</button>
+          <button className="ghost" onClick={() => setUpdateReady(false)}>
+            {t("update.later")}
+          </button>
+        </div>
+      )}
       <Dialog
         open={dialog === "shortcuts"}
         onClose={() => setDialog(null)}
@@ -433,6 +532,17 @@ export default function App() {
           <div className={styles.overlayCard}>
             <div className={styles.spinner} />
             <div>{busy}</div>
+            {cancelRun && (
+              <button
+                onClick={() => {
+                  cancelRun.abort();
+                  setBusy(t("busy.cancelling"));
+                }}
+                disabled={cancelRun.signal.aborted}
+              >
+                {t("busy.cancel")}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -440,11 +550,15 @@ export default function App() {
         <div
           className={[
             styles.toast,
-            notice.kind === "error" ? styles.toastError : styles.toastSuccess,
+            notice.kind === "error"
+              ? styles.toastError
+              : notice.kind === "warning"
+                ? styles.toastWarning
+                : styles.toastSuccess,
           ].join(" ")}
-          role={notice.kind === "error" ? "alert" : "status"}
+          role={notice.kind === "success" ? "status" : "alert"}
         >
-          <Icon name={notice.kind === "error" ? "alert" : "check"} size={18} />
+          <Icon name={notice.kind === "success" ? "check" : "alert"} size={18} />
           <div className={styles.toastText}>{notice.text}</div>
           <button
             className="icon"
@@ -467,7 +581,8 @@ export default function App() {
 type EditorApi = ReturnType<typeof useEditor>;
 type RunFn = (
   label: string,
-  fn: (setStatus: (status: string) => void) => Promise<void>,
+  fn: (setStatus: (status: string) => void, signal: AbortSignal) => Promise<void>,
+  options?: { cancellable?: boolean },
 ) => Promise<void>;
 type AssembleFn = () => Promise<Uint8Array>;
 
@@ -732,25 +847,6 @@ function IconButton({
   );
 }
 
-function PanelHeader({ title, description }: { title: MessageKey; description: MessageKey }) {
-  const { t } = useI18n();
-  return (
-    <div className={styles.panelHeader}>
-      <h2>{t(title)}</h2>
-      <p>{t(description)}</p>
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className={styles.section}>
-      <h3>{title}</h3>
-      {children}
-    </section>
-  );
-}
-
 /* ------------------------------------------------------------------ */
 /* Tool panels                                                         */
 /* ------------------------------------------------------------------ */
@@ -815,6 +911,22 @@ function PagesPanel({
           <button disabled={!hasSelection} onClick={() => editor.rotateSelected(90)}>
             <Icon name="rotateRight" size={16} />
             {t("pages.rotateRight")}
+          </button>
+        </div>
+        <div className={styles.row}>
+          <button disabled={!hasSelection} onClick={editor.duplicateSelected}>
+            <Icon name="copy" size={16} />
+            {t("pages.duplicate")}
+          </button>
+        </div>
+        <div className={styles.row}>
+          <button disabled={!hasSelection} onClick={() => editor.shiftSelected(-1)}>
+            <Icon name="arrowUp" size={16} />
+            {t("pages.moveEarlier")}
+          </button>
+          <button disabled={!hasSelection} onClick={() => editor.shiftSelected(1)}>
+            <Icon name="arrowDown" size={16} />
+            {t("pages.moveLater")}
           </button>
         </div>
         <div className={styles.row}>
@@ -915,8 +1027,8 @@ function InsertSection({ editor, run }: { editor: EditorApi; run: RunFn }) {
         icon="plus"
         onFiles={(files) =>
           run(t("busy.inserting"), async () => {
-            const err = await editor.insertFromFile(files[0], after - 1);
-            if (err) throw err;
+            const { error } = await editor.insertFromFile(files[0], after - 1);
+            if (error) throw error;
           })
         }
       />
@@ -981,26 +1093,63 @@ function AnnotatePanel({ editor, hasPages, showError, view, openDocument, viewer
 
 function CompressPanel({ editor, run, assemble, hasPages }: PanelCtx) {
   const { t } = useI18n();
-  const [result, setResult] = useState<string | null>(null);
+  const [profile, setProfile] = useState<CompressionProfile>("balanced");
+  const [result, setResult] = useState<{ text: string; kind: "success" | "warning" } | null>(null);
   const doCompress = () =>
-    run(t("busy.compressing"), async () => {
-      const before = await assemble();
-      const after = await compressPdf(before);
-      const pct = Math.max(0, Math.round((1 - after.length / before.length) * 100));
-      editor.replaceWithBytes(after, "compressed.pdf", editor.pages.length);
-      setResult(
-        t("compress.result", { pct, before: fmt(before.length), after: fmt(after.length) }),
-      );
-    });
+    run(
+      t("busy.compressing"),
+      async (setStatus, signal) => {
+        setResult(null);
+        const before = await assemble();
+        const { browserCodec } = await import("./components/imageCodec");
+        const out = await compressPdf(before, profile, browserCodec, signal, (done, total) =>
+          setStatus(t("compress.progress", { done, total })),
+        );
+        const sizes = { before: formatBytes(before.length), after: formatBytes(out.bytes.length) };
+        if (out.bytes.length >= before.length) {
+          // Never make the document bigger: keep the original.
+          setResult({ kind: "warning", text: t("compress.noGain", sizes) });
+          return;
+        }
+        const pct = Math.round((1 - out.bytes.length / before.length) * 100);
+        editor.replaceWithBytes(out.bytes, "compressed.pdf", editor.pages.length);
+        setResult({
+          kind: "success",
+          text:
+            t("compress.result", { pct, ...sizes }) +
+            (out.images ? " " + t("compress.imagesResult", { count: out.images.optimised, skipped: out.images.skipped }) : ""),
+        });
+      },
+      { cancellable: true },
+    );
+  const profiles: CompressionProfile[] = ["lossless", "balanced", "strong"];
   return (
     <>
       <PanelHeader title="compress.title" description="compress.description" />
       <Section title={t("compress.title")}>
+        <fieldset className={styles.fieldset}>
+          <legend>{t("compress.profile")}</legend>
+          {profiles.map((p) => (
+            <label key={p} className={styles.radio}>
+              <input type="radio" name="compress-profile" checked={profile === p} onChange={() => setProfile(p)} />
+              <span>
+                <strong>{t(`compress.profile.${p}` as MessageKey)}</strong>
+                <br />
+                <small>{t(`compress.profile.${p}Hint` as MessageKey)}</small>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+        {profile !== "lossless" && <p className={styles.warning}>{t("compress.lossyWarning")}</p>}
         <button className="primary block" disabled={!hasPages} onClick={doCompress}>
           <Icon name="compress" size={16} />
           {t("compress.button")}
         </button>
-        {result && <p className={styles.success}>{result}</p>}
+        {result && (
+          <p className={result.kind === "success" ? styles.success : styles.warning} role="status">
+            {result.text}
+          </p>
+        )}
         <p>{t("compress.hint")}</p>
       </Section>
     </>
@@ -1086,10 +1235,4 @@ function ExportPanel({ hasPages, exportPdf }: PanelCtx) {
       </Section>
     </>
   );
-}
-
-function fmt(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

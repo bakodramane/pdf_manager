@@ -1,0 +1,97 @@
+{
+  "meta": {
+    "date": "2026-11-25T11:39:49.201Z",
+    "platform": "linux x64",
+    "cpus": 4,
+    "node": "v22.23.5",
+    "engine": "tesseract.js 7.0.0, LSTM-only, tessdata 4.0.0 best_int",
+    "rasterDpi": 300,
+    "note": "Synthetic fixtures (Noto Sans 16 pt). Times include rasterising the page; single worker."
+  },
+  "results": [
+    {
+      "fixture": "english-clean",
+      "lang": "eng",
+      "rotate": 0,
+      "msPerPage": 2315,
+      "confidence": 96,
+      "cerOcr": 0,
+      "werOcr": 0,
+      "cerPdfjs": 0.0145,
+      "cerPoppler": 0,
+      "rssMb": 499
+    },
+    {
+      "fixture": "french-accents",
+      "lang": "fra",
+      "rotate": 0,
+      "msPerPage": 1615,
+      "confidence": 95,
+      "cerOcr": 0,
+      "werOcr": 0,
+      "cerPdfjs": 0.0135,
+      "cerPoppler": 0,
+      "rssMb": 712
+    },
+    {
+      "fixture": "mixed-en-fr",
+      "lang": "eng+fra",
+      "rotate": 0,
+      "msPerPage": 2012,
+      "confidence": 95,
+      "cerOcr": 0,
+      "werOcr": 0,
+      "cerPdfjs": 0.016,
+      "cerPoppler": 0,
+      "rssMb": 898
+    },
+    {
+      "fixture": "french-rotated-90",
+      "lang": "fra",
+      "rotate": 90,
+      "msPerPage": 1421,
+      "confidence": 95,
+      "cerOcr": 0,
+      "werOcr": 0,
+      "cerPdfjs": 0.0135,
+      "cerPoppler": 0,
+      "rssMb": 866
+    },
+    {
+      "fixture": "english-rotated-270",
+      "lang": "eng",
+      "rotate": 270,
+      "msPerPage": 1789,
+      "confidence": 96,
+      "cerOcr": 0,
+      "werOcr": 0,
+      "cerPdfjs": 0.0145,
+      "cerPoppler": 0,
+      "rssMb": 904
+    },
+    {
+      "fixture": "english-low-contrast",
+      "lang": "eng",
+      "rotate": 0,
+      "msPerPage": 1462,
+      "confidence": 96,
+      "cerOcr": 0,
+      "werOcr": 0,
+      "cerPdfjs": 0.0145,
+      "cerPoppler": 0,
+      "rssMb": 972
+    },
+    {
+      "fixture": "french-degraded-100dpi-skew2",
+      "lang": "fra",
+      "rotate": 0,
+      "msPerPage": 1440,
+      "confidence": 95,
+      "cerOcr": 0,
+      "werOcr": 0,
+      "cerPdfjs": 0.0135,
+      "cerPoppler": 0,
+      "rssMb": 941
+    }
+  ]
+}

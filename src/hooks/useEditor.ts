@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { loadPdfFile, makeId } from "../pdf/loader";
+import { loadPdfFile, makeId, PdfValidationError, type LoadBudget } from "../pdf/loader";
+import { LIMITS } from "../pdf/limits";
 import type {
   Annotation,
   FieldValue,
@@ -9,10 +10,12 @@ import type {
 } from "../pdf/types";
 import {
   deletePages,
+  duplicatePages,
   extractPages,
   insertPages,
   movePage,
   rotatePages,
+  shiftPages,
 } from "../pdf/operations";
 import { dropRenderDoc } from "../pdf/render";
 import { dropPageInfo } from "../pdf/pageInfo";
@@ -101,14 +104,39 @@ export function useEditor() {
     }
   }, [history]);
 
-  /** Load files and append their pages. Returns the errors (if any) per file. */
+  /**
+   * Memory already committed: bytes of every registered source (including
+   * those kept alive by undo steps) and pages currently in the document.
+   */
+  const budget = useCallback((): LoadBudget => {
+    let loadedBytes = 0;
+    for (const s of sourcesRef.current.values()) loadedBytes += s.bytes.byteLength;
+    return { loadedBytes, loadedPages: history.present.pages.length };
+  }, [history.present.pages.length]);
+
+  /**
+   * Load files (one at a time, so memory stays bounded) and append their
+   * pages. Returns the per-file errors and the sources that loaded.
+   */
   const addFiles = useCallback(
-    async (files: File[]): Promise<unknown[]> => {
+    async (files: File[]): Promise<{ errors: unknown[]; loaded: PdfSource[] }> => {
       const errors: unknown[] = [];
       const loaded: { source: PdfSource; pages: PageRef[] }[] = [];
+      if (files.length > LIMITS.maxFilesPerAdd) {
+        errors.push(
+          new PdfValidationError("tooManyFiles", `Too many files at once (max ${LIMITS.maxFilesPerAdd}).`, {
+            max: LIMITS.maxFilesPerAdd,
+          }),
+        );
+        return { errors, loaded: [] };
+      }
+      const running = budget();
       for (const file of files) {
         try {
-          loaded.push(await loadPdfFile(file));
+          const result = await loadPdfFile(file, running);
+          running.loadedBytes += result.source.bytes.byteLength;
+          running.loadedPages += result.pages.length;
+          loaded.push(result);
         } catch (err) {
           errors.push(err);
         }
@@ -120,9 +148,9 @@ export function useEditor() {
         const newPages = loaded.flatMap((l) => l.pages);
         commit((prev) => [...prev, ...newPages]);
       }
-      return errors;
+      return { errors, loaded: loaded.map((l) => l.source) };
     },
-    [commit],
+    [commit, budget],
   );
 
   const clearSelection = useCallback(() => setSelected(new Set()), []);
@@ -165,6 +193,21 @@ export function useEditor() {
     commit((prev) => extractPages(prev, selected));
   }, [selected, commit]);
 
+  /** Duplicate the selected pages (each copy right after its original). */
+  const duplicateSelected = useCallback(() => {
+    if (selected.size === 0) return;
+    commit((prev) => duplicatePages(prev, selected, makeId));
+  }, [selected, commit]);
+
+  /** Move the selected pages one step earlier or later (keyboard reordering). */
+  const shiftSelected = useCallback(
+    (step: -1 | 1) => {
+      if (selected.size === 0) return;
+      commit((prev) => shiftPages(prev, selected, step));
+    },
+    [selected, commit],
+  );
+
   const reorder = useCallback(
     (from: number, to: number) => commit((prev) => movePage(prev, from, to)),
     [commit],
@@ -172,17 +215,17 @@ export function useEditor() {
 
   /** Load another PDF and insert its pages after the given page index. */
   const insertFromFile = useCallback(
-    async (file: File, afterIndex: number): Promise<unknown> => {
+    async (file: File, afterIndex: number): Promise<{ error: unknown; source?: PdfSource }> => {
       try {
-        const { source, pages: srcPages } = await loadPdfFile(file);
+        const { source, pages: srcPages } = await loadPdfFile(file, budget());
         sourcesRef.current.set(source.id, source);
         commit((prev) => insertPages(prev, srcPages, afterIndex));
-        return null;
+        return { error: null, source };
       } catch (err) {
-        return err;
+        return { error: err };
       }
     },
-    [commit],
+    [commit, budget],
   );
 
   /**
@@ -269,6 +312,8 @@ export function useEditor() {
     rotateSelected,
     extractSelected,
     reorder,
+    duplicateSelected,
+    shiftSelected,
     insertFromFile,
     replaceWithBytes,
     addAnnotation,

@@ -71,9 +71,15 @@ async function samplePdf(): Promise<Uint8Array> {
   return doc.save();
 }
 
+const tasks: ReturnType<typeof pdfjs.getDocument>[] = [];
 async function open(bytes: Uint8Array) {
-  return pdfjs.getDocument({ data: bytes.slice(), isEvalSupported: false }).promise;
+  const task = pdfjs.getDocument({ data: bytes.slice() });
+  tasks.push(task);
+  return task.promise;
 }
+afterAll(async () => {
+  await Promise.all(tasks.map((t) => t.destroy()));
+});
 
 describe("PDF conversion (end to end)", () => {
   it("analyzes headings, paragraphs and both kinds of tables", async () => {
@@ -98,7 +104,6 @@ describe("PDF conversion (end to end)", () => {
     expect(aligned.t.kind).toBe("aligned");
     expect(aligned.t.colEdges).toHaveLength(4);
     expect(aligned.t.rowEdges).toHaveLength(5);
-    await pdf.destroy();
   });
 
   it("writes a .docx with real tables, fonts and page setup", async () => {
@@ -115,7 +120,6 @@ describe("PDF conversion (end to end)", () => {
     expect(xml).toContain('w:fill="D9D9D9"');
     expect(xml).toContain('w:w="12240"'); // 8.5in page width
     expect(xml).not.toContain("Page 1"); // no synthetic page headings any more
-    await pdf.destroy();
   });
 
   it("writes a .xlsx with table cells and parsed numbers", async () => {
@@ -142,6 +146,27 @@ describe("PDF conversion (end to end)", () => {
     const northRow = rowNumbers[values.findIndex((r) => r[0] === "North")];
     expect(ws.getCell(northRow, 3).numFmt).toBe('"$"#,##0.00');
     expect(ws.getCell(northRow, 1).border?.top?.style).toBe("thin");
-    await pdf.destroy();
+  });
+});
+
+describe("Excel export safety", () => {
+  it("writes formula-like PDF text as literal strings, never as formulas", async () => {
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const page = doc.addPage([595, 842]);
+    const hostile = ["=HYPERLINK(\"http://example.com\",\"x\")", "+SUM(1,2)", "-2+3", "@cmd", "=1+1"];
+    hostile.forEach((t, i) => page.drawText(t, { x: 72, y: 760 - i * 20, size: 11, font }));
+    const pdf = await open(await doc.save());
+    const bytes = await pdfToXlsx(pdf);
+    // No <f> (formula) element anywhere in the workbook XML.
+    const zip = await JSZip.loadAsync(bytes);
+    const sheetXml = await zip.file("xl/worksheets/sheet1.xml")!.async("string");
+    expect(sheetXml).not.toMatch(/<f[ >]/);
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(bytes.buffer as ArrayBuffer);
+    const cells: unknown[] = [];
+    wb.getWorksheet("Page 1")!.eachRow((row) => row.eachCell((c) => cells.push(c.value)));
+    for (const v of cells) expect(typeof v === "object" && v !== null && "formula" in v).toBe(false);
+    expect(cells.map(String).join(" ")).toContain("=HYPERLINK");
   });
 });

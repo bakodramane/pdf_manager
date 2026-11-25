@@ -180,10 +180,23 @@ export const fr: Messages = {
   // Panneau Compresser
   "compress.title": "Compresser",
   "compress.description": "Allégez le document pour le partager.",
+  "compress.profile": "Niveau de compression",
+  "compress.profile.lossless": "Sans perte",
+  "compress.profile.losslessHint": "Réorganise la structure du fichier et fusionne les images en double. Rien ne change sur les pages.",
+  "compress.profile.balanced": "Équilibré (150 ppp)",
+  "compress.profile.balancedHint": "Réduit aussi les grandes images. Convient à la lecture à l'écran et à l'impression courante.",
+  "compress.profile.strong": "Fort (100 ppp)",
+  "compress.profile.strongHint": "Fichiers les plus légers, pour l'envoi par e-mail ou les connexions lentes. Les images perdent des détails visibles.",
+  "compress.lossyWarning":
+    "Ce niveau réencode les images (avec perte) : photos et numérisations perdent un peu de détail. Le texte, les dessins, les formulaires et les liens sont conservés. Le fichier d'origine sur votre disque n'est pas modifié.",
+  "compress.progress": "Optimisation des images… {done} sur {total}",
+  "compress.noGain":
+    "Aucune réduction possible à ce niveau ({before} → {after}) ; le document n'a pas été modifié.",
+  "compress.imagesResult": "{count} image(s) optimisée(s), {skipped} laissée(s) telle(s) quelle(s).",
   "compress.button": "Compresser le document",
   "compress.result": "{pct} % gagnés ({before} → {after}). Utilisez Exporter pour télécharger.",
   "compress.hint":
-    "Réorganise la structure du PDF en flux d'objets. Les images intégrées ne sont pas recompressées : le gain varie.",
+    "Le résultat dépend du document : les numérisations et photos se réduisent le plus, les fichiers de texte seul très peu. Le résultat remplace le document ouvert (Annuler rétablit l'original) — utilisez Exporter pour l'enregistrer.",
 
   // Panneau Convertir
   "convert.title": "Convertir",
@@ -223,6 +236,155 @@ export const fr: Messages = {
   "notice.split": "{count} parties téléchargées",
   "notice.dismiss": "Fermer",
 
+  // Avertissements sur le contenu d'un PDF chargé
+  "warning.file": "« {name} » :",
+  "warning.signed":
+    "Il porte une signature numérique. Tout fichier exporté par PDF Manager est un nouveau fichier dans lequel cette signature n'est plus valide.",
+  "warning.scripts":
+    "Il contient des scripts ou des actions. PDF Manager ne les exécute jamais, mais les pages exportées peuvent encore les contenir.",
+  "warning.attachments": "Il contient des fichiers joints. PDF Manager ne les ouvre pas.",
+  "warning.xfa": "Il utilise un formulaire XFA, que PDF Manager ne peut ni afficher ni remplir.",
+
+  // Outils de page
+  "nav.tools": "Outils de page",
+  "pages.duplicate": "Dupliquer",
+  "pages.moveEarlier": "Avancer",
+  "pages.moveLater": "Reculer",
+  "tools.title": "Outils de page",
+  "tools.description": "Ajoutez des pages, numérotez-les, marquez-les ou enregistrez-les en images.",
+  "tools.blank": "Page blanche",
+  "tools.pageSize": "Format de page",
+  "tools.blankButton": "Insérer une page blanche",
+  "tools.insertHint": "Les nouvelles pages sont placées après la dernière page sélectionnée, ou à la fin.",
+  "tools.blankAdded": "Page blanche insérée en page {page}.",
+  "tools.images": "Images en pages",
+  "tools.imageSize": "Même taille que l'image",
+  "tools.imagesDrop": "Ajouter des images (JPG, PNG…) comme pages",
+  "tools.imagesHint":
+    "Chaque image devient une page, dans l'ordre choisi. Les informations de l'appareil photo (EXIF, position) ne sont pas copiées dans le PDF.",
+  "tools.imagesAdded": "{count} image(s) ajoutée(s) comme pages.",
+  "tools.numbers": "Numéros de page",
+  "tools.position": "Position",
+  "tools.position.bottom-center": "En bas au centre",
+  "tools.position.bottom-right": "En bas à droite",
+  "tools.position.top-right": "En haut à droite",
+  "tools.template": "Texte",
+  "tools.templateHint": "{n} est remplacé par le numéro de page et {total} par le nombre de pages. Annuler retire les numéros.",
+  "tools.start": "Premier numéro",
+  "tools.numbersButton": "Ajouter les numéros de page",
+  "tools.numbersAdded": "Numéros de page ajoutés.",
+  "tools.watermark": "Filigrane",
+  "tools.watermarkText": "Texte",
+  "tools.watermarkPlaceholder": "ex. BROUILLON, CONFIDENTIEL",
+  "tools.opacity": "Opacité ({value} %)",
+  "tools.angle": "Angle",
+  "tools.watermarkButton": "Ajouter le filigrane",
+  "tools.watermarkAdded": "Filigrane ajouté.",
+  "tools.watermarkEmpty": "Saisissez d'abord le texte du filigrane.",
+  "tools.watermarkHint":
+    "Un filigrane est dessiné sur la page comme tout autre contenu. Il marque un document ; il ne le protège pas et peut être retiré avec un éditeur.",
+  "tools.exportImages": "Enregistrer les pages en images",
+  "tools.format": "Format",
+  "tools.resolution": "Résolution",
+  "tools.exportImagesButton": "Enregistrer en images",
+  "tools.exportImagesHint": "Une page donne une image ; plusieurs pages sont enregistrées ensemble dans un fichier .zip.",
+  "tools.exporting": "Création des images…",
+  "tools.exportProgress": "Création des images… {done} sur {total}",
+
+  // Version web : utilisation hors ligne et mises à jour
+  "offline.title": "Hors ligne",
+  "offline.intro":
+    "Cette version web garde une copie de l'application dans votre navigateur pour qu'elle s'ouvre sans connexion internet. Vos documents ne sont jamais enregistrés ni envoyés.",
+  "offline.appReady": "L'application est prête à fonctionner hors ligne.",
+  "offline.appNotReady": "L'application n'est pas encore disponible hors ligne (rechargez une fois en étant connecté).",
+  "offline.ocrTitle": "Reconnaissance de texte (OCR) hors ligne",
+  "offline.ocrIntro":
+    "La reconnaissance nécessite le moteur (environ {engine}) et un pack de langue. Ils ne sont téléchargés qu'à votre demande, puis conservés pour un usage hors ligne.",
+  "offline.packReady": "disponible hors ligne",
+  "offline.packMissing": "non téléchargé",
+  "offline.prepare": "Rendre disponible hors ligne",
+  "offline.preparing": "Téléchargement… {done} fichier(s) sur {total}",
+  "offline.notReady": "Le mode hors ligne n'est pas encore actif. Rechargez la page une fois et réessayez.",
+  "offline.failed": "Le téléchargement a échoué. Vérifiez votre connexion et réessayez.",
+  "offline.never":
+    "Seuls les fichiers de l'application sont conservés. Les PDF, images, signatures et résultats ne sont jamais enregistrés par ce site.",
+  "offline.reset": "Supprimer les données hors ligne",
+  "offline.resetConfirm":
+    "Supprimer la copie hors ligne de l'application, les packs de langue et votre préférence de langue ? Vos propres fichiers ne sont pas concernés.",
+  "update.available": "Une nouvelle version de PDF Manager est prête.",
+  "update.availableWithDoc":
+    "Une nouvelle version de PDF Manager est prête. Exportez d'abord votre travail : recharger ferme le document ouvert.",
+  "update.reload": "Recharger maintenant",
+  "update.later": "Plus tard",
+
+  // OCR
+  "nav.ocr": "Reconnaître le texte",
+  "busy.cancel": "Annuler",
+  "busy.cancelling": "Annulation…",
+  "ocr.title": "Reconnaissance de texte (OCR)",
+  "ocr.description":
+    "Transformez des pages numérisées en texte sélectionnable et consultable — sur cet appareil, en anglais et en français.",
+  "ocr.settings": "Réglages",
+  "ocr.scope": "Pages",
+  "ocr.scope.all": "Toutes les pages",
+  "ocr.scope.selected": "Pages sélectionnées",
+  "ocr.scope.range": "Plage de pages",
+  "ocr.language": "Langue du document",
+  "ocr.lang.both": "Anglais et français",
+  "ocr.lang.eng": "Anglais",
+  "ocr.lang.fra": "Français",
+  "ocr.quality": "Qualité",
+  "ocr.quality.fast": "Rapide (200 ppp) — texte net et assez grand",
+  "ocr.quality.standard": "Standard (300 ppp) — recommandé",
+  "ocr.quality.high": "Élevée (400 ppp) — petits caractères ; plus lent, plus de mémoire",
+  "ocr.includeText": "Reconnaître aussi les pages qui contiennent déjà du texte",
+  "ocr.includeTextWarning":
+    "Les pages qui ont déjà du texte recevront une seconde couche de texte OCR : les recherches et copies pourront afficher le texte en double.",
+  "ocr.button": "Reconnaître le texte",
+  "ocr.offlineDesktop":
+    "Fonctionne hors ligne : le moteur de reconnaissance et les modèles anglais et français sont inclus dans l'application.",
+  "ocr.offlineWeb":
+    "Le moteur de reconnaissance et le modèle de langue ({size}) sont chargés depuis ce site la première fois, puis le traitement se fait dans votre navigateur. Rien n'est envoyé.",
+  "ocr.allHadText": "Toutes les pages choisies contiennent déjà du texte : il n'y avait rien à reconnaître.",
+  "ocr.offlineWebNoSize":
+    "Le moteur de reconnaissance et le modèle de langue sont chargés depuis ce site, puis le traitement se fait dans votre navigateur. Rien n'est envoyé.",
+  "ocr.busy.starting": "Préparation de la reconnaissance de texte…",
+  "ocr.busy.page": "Reconnaissance de la page {page} ({done} sur {total})…",
+  "ocr.busy.building": "Création du fichier…",
+  "ocr.done": "Texte reconnu sur {count} page(s).",
+  "ocr.cancelled": "Reconnaissance annulée. Résultats conservés pour {count} page(s) (partiels).",
+  "ocr.someFailed": "La reconnaissance a échoué sur la ou les pages {pages}. Vous pouvez réessayer.",
+  "ocr.results": "Résultats",
+  "ocr.stale":
+    "Le document a changé depuis la reconnaissance. Relancez-la avant d'enregistrer un PDF consultable ou de convertir.",
+  "ocr.summary": "{done} page(s) reconnue(s), {skipped} ignorée(s) (déjà du texte), {failed} en échec.",
+  "ocr.skippedText": "Ignorées car elles contiennent déjà du texte : page(s) {pages}.",
+  "ocr.lowConfidence":
+    "Confiance de reconnaissance faible sur la ou les pages {pages}. Vérifiez attentivement le texte ; une numérisation plus nette ou de meilleure résolution peut aider.",
+  "ocr.retryFailed": "Réessayer les pages en échec",
+  "ocr.saveSearchable": "Enregistrer le PDF consultable",
+  "ocr.copy": "Copier le texte",
+  "ocr.saveText": "Enregistrer en .txt",
+  "ocr.toWord": "Word (depuis l'OCR)",
+  "ocr.toExcel": "Excel (depuis l'OCR)",
+  "ocr.convertHint":
+    "Les fichiers Word et Excel créés à partir du texte reconnu sont approximatifs : vérifiez les noms, nombres et dates avant de vous y fier.",
+  "ocr.copied": "Texte copié dans le presse-papiers.",
+  "ocr.copyFailed": "Le texte n'a pas pu être copié. Utilisez plutôt « Enregistrer en .txt ».",
+  "ocr.pageLabel": "Page {page}",
+  "ocr.pageText": "Texte reconnu de la page {page}",
+  "ocr.confidence": "confiance {value} %",
+  "ocr.low": "à vérifier",
+  "ocr.editHint":
+    "Vous pouvez corriger le texte ci-dessus ; les corrections servent à « Copier le texte » et « Enregistrer en .txt ». Le PDF consultable utilise les mots reconnus et leurs positions.",
+  "ocr.limitsTitle": "Bon à savoir",
+  "ocr.limit.confidence":
+    "La confiance est une estimation du moteur, pas une garantie. Ne considérez jamais des chiffres juridiques, financiers ou officiels reconnus comme vérifiés.",
+  "ocr.limit.orientation":
+    "Les pages doivent être à l'endroit : faites d'abord pivoter les pages couchées ou à l'envers (onglet Pages).",
+  "ocr.limit.layout":
+    "Le PDF consultable conserve chaque page à l'identique ; seul du texte invisible est ajouté. Les signatures numériques existantes ne seront plus valides.",
+
   // Erreurs
   "error.splitPoints":
     "Indiquez au moins un point de découpe valide (ex. 3, 7) dans la plage de pages.",
@@ -231,13 +393,22 @@ export const fr: Messages = {
     "Aucune signature n'a été trouvée dans l'image. Essayez une photo avec un trait plus foncé.",
   "error.loadFirst": "Chargez d'abord un PDF.",
   "error.noSelection": "Sélectionnez d'abord au moins une page.",
+  "error.unsupportedChars":
+    "Le texte d'une annotation contient des caractères que les polices fournies ne permettent pas d'écrire dans le PDF : {chars}. Supprimez-les ou remplacez-les, puis exportez à nouveau.",
   "error.noFile": "Aucun fichier fourni.",
   "error.notPdf": "« {name} » n'est pas un fichier PDF.",
   "error.empty": "« {name} » est vide.",
   "error.tooLarge": "« {name} » est trop volumineux (maximum {max} Mo).",
   "error.invalid": "« {name} » ne semble pas être un PDF valide.",
   "error.encrypted":
-    "« {name} » est protégé par un mot de passe. Retirez le mot de passe et réessayez.",
+    "« {name} » est chiffré (protégé par un mot de passe). La modification des PDF chiffrés n'est pas prise en charge : ouvrez-le dans le logiciel qui l'a créé, enregistrez une copie non protégée si vous en avez le droit, puis réessayez.",
+  "error.totalTooLarge":
+    "Ouvrir « {name} » utiliserait plus de {max} Mo de mémoire pour les documents. Fermez le document en cours (ou certains fichiers) et réessayez.",
+  "error.tooManyPages":
+    "Ouvrir « {name} » porterait le total à plus de {max} pages. Fermez le document en cours et réessayez.",
+  "error.tooManyFiles": "Trop de fichiers à la fois (maximum {max}). Ajoutez-les par petits groupes.",
+  "error.imageTooLarge":
+    "Cette image est trop grande (maximum {max} mégapixels). Utilisez une image plus petite.",
   "error.corrupted": "« {name} » est illisible : il est peut-être endommagé.",
   "error.noPages": "« {name} » ne contient aucune page.",
   "error.nothingToExport": "Rien à exporter : le document ne contient aucune page.",

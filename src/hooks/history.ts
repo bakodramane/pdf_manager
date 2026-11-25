@@ -9,8 +9,14 @@ export interface History<T> {
   future: T[];
 }
 
-/** Maximum number of undo steps kept (older steps are dropped). */
-export const HISTORY_LIMIT = 50;
+import { LIMITS } from "../pdf/limits";
+
+/**
+ * Maximum number of undo steps kept (older steps are dropped). Steps share
+ * page references and source bytes, so a step costs little memory beyond
+ * any source it keeps alive (counted in the load budget).
+ */
+export const HISTORY_LIMIT = LIMITS.historySteps;
 
 export function createHistory<T>(present: T): History<T> {
   return { past: [], present, future: [] };

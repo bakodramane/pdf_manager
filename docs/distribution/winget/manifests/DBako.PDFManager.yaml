@@ -1,0 +1,6 @@
+# TEMPLATE — not submitted.
+PackageIdentifier: DBako.PDFManager
+PackageVersion: <VERSION>
+DefaultLocale: en-US
+ManifestType: version
+ManifestVersion: 1.6.0

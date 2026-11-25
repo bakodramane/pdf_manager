@@ -990,6 +990,14 @@
   color: var(--danger);
 }
 
+.toastWarning {
+  border-left: 4px solid var(--warn);
+}
+
+.toastWarning > svg {
+  color: var(--warn);
+}
+
 .toastSuccess {
   border-left: 4px solid var(--ok);
 }
@@ -1096,4 +1104,71 @@
 
 .rotationTag svg {
   vertical-align: -1px;
+}
+
+/* Form controls used by the OCR, compression and page-tool panels. */
+.fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem 0.75rem;
+  margin: 0 0 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.fieldset legend {
+  font-size: 0.8rem;
+  color: var(--muted);
+  padding: 0 0.25rem;
+}
+
+.radio,
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 32px;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.radio input,
+.checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.warning {
+  color: var(--warn);
+  font-weight: 500;
+}
+
+.ocrPage {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.ocrPage summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+}
+
+.ocrPage textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.4rem;
+  font: inherit;
+  font-size: 0.85rem;
+  resize: vertical;
+}
+
+.field select {
+  min-height: 34px;
 }

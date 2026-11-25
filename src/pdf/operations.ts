@@ -147,3 +147,42 @@ export function parsePageRanges(input: string, pageCount: number): number[] {
   }
   return result;
 }
+
+/**
+ * Duplicate the selected pages: each copy is inserted right after its
+ * original, with fresh ids (annotations are copied too, with new ids, so
+ * editing one copy never changes the other).
+ */
+export function duplicatePages(
+  pages: PageRef[],
+  ids: Set<string>,
+  newId: (prefix: string) => string,
+): PageRef[] {
+  const out: PageRef[] = [];
+  for (const p of pages) {
+    out.push(p);
+    if (ids.has(p.id)) {
+      out.push({
+        ...p,
+        id: newId("pg"),
+        annotations: p.annotations?.map((a) => ({ ...a, id: newId("an") })),
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * Move the selected pages one step earlier (-1) or later (+1), keeping
+ * their relative order — a keyboard alternative to drag-and-drop.
+ */
+export function shiftPages(pages: PageRef[], ids: Set<string>, step: -1 | 1): PageRef[] {
+  const next = pages.slice();
+  const order = step < 0 ? [...next.keys()] : [...next.keys()].reverse();
+  for (const i of order) {
+    const j = i + step;
+    if (!ids.has(next[i].id) || j < 0 || j >= next.length || ids.has(next[j].id)) continue;
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+  return next;
+}
