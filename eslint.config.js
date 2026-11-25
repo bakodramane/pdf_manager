@@ -36,6 +36,11 @@ export default tseslint.config(
     },
   },
   {
+    // Playwright fixtures call `use()`, which is not a React hook.
+    files: ["e2e/**/*.ts"],
+    rules: { "react-hooks/rules-of-hooks": "off" },
+  },
+  {
     // Electron main/preload scripts and Node build scripts (CommonJS / ESM).
     files: ["electron/**/*.cjs", "scripts/**/*.{js,mjs,cjs}"],
     extends: [js.configs.recommended],
@@ -51,5 +56,13 @@ export default tseslint.config(
   {
     files: ["scripts/**/*.mjs"],
     languageOptions: { sourceType: "module" },
+  },
+  {
+    // Service-worker template (placeholders are filled in at build time).
+    files: ["scripts/sw-template.js"],
+    languageOptions: {
+      sourceType: "script",
+      globals: { ...globals.serviceworker, __PRECACHE__: "readonly" },
+    },
   },
 );

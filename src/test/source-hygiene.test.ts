@@ -39,3 +39,12 @@ describe("source hygiene", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe("packaging", () => {
+  it("keeps package.json dependencies empty (electron-builder would copy them into the app)", () => {
+    // Everything the renderer needs is bundled by Vite or copied into dist/
+    // by scripts/copy-assets.mjs; node_modules must not be packaged.
+    const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+    expect(pkg.dependencies ?? {}).toEqual({});
+  });
+});

@@ -1,5 +1,8 @@
 /// <reference types="vitest/config" />
 import { createRequire } from "node:module";
+import { createHash } from "node:crypto";
+import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { join, relative, sep } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import pkg from "./package.json";
@@ -35,12 +38,58 @@ function cspMeta(): Plugin {
   };
 }
 
+/**
+ * Web edition: write dist/sw.js from scripts/sw-template.js with the exact
+ * list of application files to precache and a version derived from their
+ * content (any change gives a new version, so app and worker never mix).
+ * OCR engine/models and the Unicode fonts are not precached (OCR is cached
+ * only on explicit request; fonts on first use).
+ */
+function serviceWorker(): Plugin {
+  let outDir = "dist";
+  return {
+    name: "pdf-manager-service-worker",
+    apply: "build",
+    configResolved(config) {
+      outDir = config.build.outDir;
+    },
+    writeBundle() {
+      const files: string[] = [];
+      const walk = (dir: string) => {
+        for (const name of readdirSync(dir)) {
+          const p = join(dir, name);
+          if (statSync(p).isDirectory()) walk(p);
+          else files.push(relative(outDir, p).split(sep).join("/"));
+        }
+      };
+      walk(outDir);
+      const precache = files
+        .filter(
+          (f) =>
+            (f === "ocr/manifest.json" || !/^(ocr|fonts|pdfjs\/cmaps)\//.test(f)) && f !== "sw.js" && !f.endsWith(".map"),
+        )
+        .sort();
+      const hash = createHash("sha256");
+      for (const f of precache) hash.update(f).update(readFileSync(join(outDir, f)));
+      const version = hash.digest("hex").slice(0, 16);
+      const ocrManifest = join(outDir, "ocr", "manifest.json");
+      const ocrVersion = createHash("sha256").update(readFileSync(ocrManifest)).digest("hex").slice(0, 12);
+      const sw = readFileSync("scripts/sw-template.js", "utf8")
+        .replaceAll("__VERSION__", version)
+        .replaceAll("__OCR_VERSION__", ocrVersion)
+        .replaceAll("__PRECACHE__", JSON.stringify(precache));
+      if (/__(VERSION|OCR_VERSION|PRECACHE)__/.test(sw)) throw new Error("sw.js: unfilled placeholder");
+      writeFileSync(join(outDir, "sw.js"), sw);
+    },
+  };
+}
+
 // base: './' produces relative asset paths so the same build works inside
 // Electron (app://pdf-manager/) and on any static sub-path such as
 // GitHub Pages (/pdf_manager/).
 export default defineConfig({
   base: "./",
-  plugins: [react(), cspMeta()],
+  plugins: [react(), cspMeta(), serviceWorker()],
   // App version shown in the Credits dialog (single source: package.json).
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),

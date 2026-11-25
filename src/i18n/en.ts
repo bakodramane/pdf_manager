@@ -293,6 +293,31 @@ export const en = {
   "tools.exporting": "Creating images…",
   "tools.exportProgress": "Creating images… {done} of {total}",
 
+  // Web edition: offline use and updates
+  "offline.title": "Offline use",
+  "offline.intro":
+    "This web version keeps a copy of the application in your browser so it opens without an internet connection. Your documents are never stored or sent anywhere.",
+  "offline.appReady": "The application is ready to work offline.",
+  "offline.appNotReady": "The application is not available offline yet (reload once while connected).",
+  "offline.ocrTitle": "Text recognition (OCR) offline",
+  "offline.ocrIntro":
+    "Recognition needs the engine (about {engine}) and a language pack. They are downloaded only when you ask, then kept for offline use.",
+  "offline.packReady": "available offline",
+  "offline.packMissing": "not downloaded",
+  "offline.prepare": "Make available offline",
+  "offline.preparing": "Downloading… {done} of {total} files",
+  "offline.notReady": "Offline support is not active yet. Reload the page once and try again.",
+  "offline.failed": "The download failed. Check your connection and try again.",
+  "offline.never": "Only application files are stored. PDFs, images, signatures and results are never saved by this site.",
+  "offline.reset": "Remove offline data",
+  "offline.resetConfirm":
+    "Remove the offline copy of the application, the language packs and your language preference? Your own files are not affected.",
+  "update.available": "A new version of PDF Manager is ready.",
+  "update.availableWithDoc":
+    "A new version of PDF Manager is ready. Export your work first: reloading closes the open document.",
+  "update.reload": "Reload now",
+  "update.later": "Later",
+
   // OCR
   "nav.ocr": "Recognise text",
   "busy.cancel": "Cancel",
@@ -320,6 +345,9 @@ export const en = {
   "ocr.offlineDesktop": "Works offline: the recognition engine and the English and French models are included in the app.",
   "ocr.offlineWeb":
     "The recognition engine and language model ({size}) are loaded from this site the first time, then processing happens in your browser. Nothing is uploaded.",
+  "ocr.allHadText": "Every chosen page already contains text, so nothing needed recognising.",
+  "ocr.offlineWebNoSize":
+    "The recognition engine and language model are loaded from this site, then processing happens in your browser. Nothing is uploaded.",
   "ocr.busy.starting": "Preparing text recognition…",
   "ocr.busy.page": "Recognising page {page} ({done} of {total})…",
   "ocr.busy.building": "Building the file…",

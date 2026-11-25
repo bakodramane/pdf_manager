@@ -120,6 +120,8 @@ export function OcrPanel(props: OcrPanelProps) {
             : result;
         setSession({ pagesSnapshot: pages, bytes, result: merged, edited: {}, language, quality });
         if (result.cancelled) showError(t("ocr.cancelled", { count: result.pages.length }));
+        else if (!result.pages.length && !result.failed.length && result.skippedWithText.length)
+          showSuccess(t("ocr.allHadText"));
         else if (result.failed.length) showError(t("ocr.someFailed", { pages: result.failed.map((f) => f.page + 1).join(", ") }));
         else showSuccess(t("ocr.done", { count: result.pages.length }));
       },
@@ -241,7 +243,13 @@ export function OcrPanel(props: OcrPanelProps) {
           <Icon name="scan" size={16} />
           {t("ocr.button")}
         </button>
-        <p>{isDesktop ? t("ocr.offlineDesktop") : t("ocr.offlineWeb", { size: formatBytes(engineBytes + langBytes) })}</p>
+        <p>
+          {isDesktop
+            ? t("ocr.offlineDesktop")
+            : engineBytes > 0
+              ? t("ocr.offlineWeb", { size: formatBytes(engineBytes + langBytes) })
+              : t("ocr.offlineWebNoSize")}
+        </p>
       </Section>
 
       {results && (

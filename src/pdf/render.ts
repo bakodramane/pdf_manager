@@ -10,13 +10,16 @@ pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 // makes network requests — required for the Electron offline build.
 // With base: './', import.meta.env.BASE_URL is './' in production and '/' in
 // dev; both correctly resolve to the public/ assets served by Vite or Electron.
-const BASE = import.meta.env.BASE_URL;
-const CMAP_URL = `${BASE}pdfjs/cmaps/`;
-const FONT_URL = `${BASE}pdfjs/standard_fonts/`;
+// These must be absolute: PDF.js resolves them inside its worker, where a
+// relative "./pdfjs/" would point below assets/ and 404.
+const assetUrl = (path: string) =>
+  typeof document === "undefined" ? `${import.meta.env.BASE_URL}${path}` : new URL(path, document.baseURI).href;
+const CMAP_URL = assetUrl("pdfjs/cmaps/");
+const FONT_URL = assetUrl("pdfjs/standard_fonts/");
 // JPEG 2000 / JBIG2 decoders and colour management (PDF.js 5+) are WASM
 // modules, also bundled locally (scripts/copy-assets.mjs).
-const WASM_URL = `${BASE}pdfjs/wasm/`;
-const ICC_URL = `${BASE}pdfjs/iccs/`;
+const WASM_URL = assetUrl("pdfjs/wasm/");
+const ICC_URL = assetUrl("pdfjs/iccs/");
 
 /**
  * Options applied to every PDF.js document the app opens. PDF files are

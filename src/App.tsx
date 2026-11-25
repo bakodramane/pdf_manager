@@ -16,6 +16,8 @@ import { Dialog } from "./components/Dialog";
 import { PanelHeader, Section } from "./components/Panel";
 import { OcrPanel } from "./components/OcrPanel";
 import { ToolsPanel } from "./components/ToolsPanel";
+import { OfflinePanel } from "./components/OfflinePanel";
+import { PWA_SUPPORTED, applyUpdate, onUpdateAvailable } from "./pwa";
 import { Viewer, type ViewerHandle, type Zoom } from "./components/Viewer";
 import { useShortcuts } from "./hooks/useShortcuts";
 import { SHORTCUT_LIST, keyLabel, type ShortcutAction } from "./hooks/shortcuts";
@@ -50,7 +52,7 @@ type Notice = { kind: "error" | "success" | "warning"; text: string };
 
 /** App icon (public/icon.png), also used as the window and installer icon. */
 const LOGO_URL = `${import.meta.env.BASE_URL}icon.png`;
-type DialogId = "credits" | "shortcuts";
+type DialogId = "credits" | "shortcuts" | "offline";
 
 export default function App() {
   const { t, lang } = useI18n();
@@ -295,6 +297,9 @@ export default function App() {
     }
   };
   useEffect(() => onDesktopMenuCommand((command) => menuHandler.current(command)), []);
+  // Web edition: a new version is ready; reload only when the user agrees.
+  const [updateReady, setUpdateReady] = useState(false);
+  useEffect(() => onUpdateAvailable(() => setUpdateReady(true)), []);
   useEffect(() => setDesktopLanguage(lang), [lang]);
   const ctx: PanelCtx = {
     editor,
@@ -468,6 +473,12 @@ export default function App() {
           <Icon name="shield" size={12} />
           {t("app.privacyNote")}
         </span>
+        {PWA_SUPPORTED && (
+          <button className={styles.footerHint} onClick={() => setDialog("offline")}>
+            <Icon name="shield" size={12} />
+            {t("offline.title")}
+          </button>
+        )}
         <button className={styles.footerHint} onClick={() => setDialog("shortcuts")}>
           <Icon name="keyboard" size={12} />
           {t("shortcuts.hint")}
@@ -495,6 +506,19 @@ export default function App() {
       >
         <CreditsContent />
       </Dialog>
+      <Dialog open={dialog === "offline"} onClose={() => setDialog(null)} title={t("offline.title")}>
+        <OfflinePanel />
+      </Dialog>
+      {updateReady && (
+        <div className={[styles.toast, styles.toastWarning].join(" ")} role="status">
+          <Icon name="info" size={18} />
+          <div className={styles.toastText}>{hasPages ? t("update.availableWithDoc") : t("update.available")}</div>
+          <button onClick={applyUpdate}>{t("update.reload")}</button>
+          <button className="ghost" onClick={() => setUpdateReady(false)}>
+            {t("update.later")}
+          </button>
+        </div>
+      )}
       <Dialog
         open={dialog === "shortcuts"}
         onClose={() => setDialog(null)}

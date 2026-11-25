@@ -291,6 +291,32 @@ export const fr: Messages = {
   "tools.exporting": "Création des images…",
   "tools.exportProgress": "Création des images… {done} sur {total}",
 
+  // Version web : utilisation hors ligne et mises à jour
+  "offline.title": "Hors ligne",
+  "offline.intro":
+    "Cette version web garde une copie de l'application dans votre navigateur pour qu'elle s'ouvre sans connexion internet. Vos documents ne sont jamais enregistrés ni envoyés.",
+  "offline.appReady": "L'application est prête à fonctionner hors ligne.",
+  "offline.appNotReady": "L'application n'est pas encore disponible hors ligne (rechargez une fois en étant connecté).",
+  "offline.ocrTitle": "Reconnaissance de texte (OCR) hors ligne",
+  "offline.ocrIntro":
+    "La reconnaissance nécessite le moteur (environ {engine}) et un pack de langue. Ils ne sont téléchargés qu'à votre demande, puis conservés pour un usage hors ligne.",
+  "offline.packReady": "disponible hors ligne",
+  "offline.packMissing": "non téléchargé",
+  "offline.prepare": "Rendre disponible hors ligne",
+  "offline.preparing": "Téléchargement… {done} fichier(s) sur {total}",
+  "offline.notReady": "Le mode hors ligne n'est pas encore actif. Rechargez la page une fois et réessayez.",
+  "offline.failed": "Le téléchargement a échoué. Vérifiez votre connexion et réessayez.",
+  "offline.never":
+    "Seuls les fichiers de l'application sont conservés. Les PDF, images, signatures et résultats ne sont jamais enregistrés par ce site.",
+  "offline.reset": "Supprimer les données hors ligne",
+  "offline.resetConfirm":
+    "Supprimer la copie hors ligne de l'application, les packs de langue et votre préférence de langue ? Vos propres fichiers ne sont pas concernés.",
+  "update.available": "Une nouvelle version de PDF Manager est prête.",
+  "update.availableWithDoc":
+    "Une nouvelle version de PDF Manager est prête. Exportez d'abord votre travail : recharger ferme le document ouvert.",
+  "update.reload": "Recharger maintenant",
+  "update.later": "Plus tard",
+
   // OCR
   "nav.ocr": "Reconnaître le texte",
   "busy.cancel": "Annuler",
@@ -319,6 +345,9 @@ export const fr: Messages = {
     "Fonctionne hors ligne : le moteur de reconnaissance et les modèles anglais et français sont inclus dans l'application.",
   "ocr.offlineWeb":
     "Le moteur de reconnaissance et le modèle de langue ({size}) sont chargés depuis ce site la première fois, puis le traitement se fait dans votre navigateur. Rien n'est envoyé.",
+  "ocr.allHadText": "Toutes les pages choisies contiennent déjà du texte : il n'y avait rien à reconnaître.",
+  "ocr.offlineWebNoSize":
+    "Le moteur de reconnaissance et le modèle de langue sont chargés depuis ce site, puis le traitement se fait dans votre navigateur. Rien n'est envoyé.",
   "ocr.busy.starting": "Préparation de la reconnaissance de texte…",
   "ocr.busy.page": "Reconnaissance de la page {page} ({done} sur {total})…",
   "ocr.busy.building": "Création du fichier…",

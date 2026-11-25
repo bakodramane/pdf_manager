@@ -22,7 +22,7 @@ export default defineConfig({
     { name: "electron", testMatch: /electron(-[a-z]+)?\.spec\.ts/ },
     {
       name: "web",
-      testMatch: /web\.spec\.ts/,
+      testMatch: /web(-[a-z]+)?\.spec\.ts/,
       use: { browserName: "chromium", baseURL: "http://127.0.0.1:4173/pdf_manager/" },
     },
   ],
