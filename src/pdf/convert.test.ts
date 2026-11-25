@@ -71,9 +71,15 @@ async function samplePdf(): Promise<Uint8Array> {
   return doc.save();
 }
 
+const tasks: ReturnType<typeof pdfjs.getDocument>[] = [];
 async function open(bytes: Uint8Array) {
-  return pdfjs.getDocument({ data: bytes.slice(), isEvalSupported: false }).promise;
+  const task = pdfjs.getDocument({ data: bytes.slice() });
+  tasks.push(task);
+  return task.promise;
 }
+afterAll(async () => {
+  await Promise.all(tasks.map((t) => t.destroy()));
+});
 
 describe("PDF conversion (end to end)", () => {
   it("analyzes headings, paragraphs and both kinds of tables", async () => {
@@ -98,7 +104,6 @@ describe("PDF conversion (end to end)", () => {
     expect(aligned.t.kind).toBe("aligned");
     expect(aligned.t.colEdges).toHaveLength(4);
     expect(aligned.t.rowEdges).toHaveLength(5);
-    await pdf.destroy();
   });
 
   it("writes a .docx with real tables, fonts and page setup", async () => {
@@ -115,7 +120,6 @@ describe("PDF conversion (end to end)", () => {
     expect(xml).toContain('w:fill="D9D9D9"');
     expect(xml).toContain('w:w="12240"'); // 8.5in page width
     expect(xml).not.toContain("Page 1"); // no synthetic page headings any more
-    await pdf.destroy();
   });
 
   it("writes a .xlsx with table cells and parsed numbers", async () => {
@@ -142,6 +146,5 @@ describe("PDF conversion (end to end)", () => {
     const northRow = rowNumbers[values.findIndex((r) => r[0] === "North")];
     expect(ws.getCell(northRow, 3).numFmt).toBe('"$"#,##0.00');
     expect(ws.getCell(northRow, 1).border?.top?.style).toBe("thin");
-    await pdf.destroy();
   });
 });

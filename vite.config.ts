@@ -19,6 +19,13 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "electron/**/*.test.ts"],
+    setupFiles: ["src/test/setup.ts"],
+    testTimeout: 30000,
+    // PDF.js 5+ ships two builds: the modern one (used by the app, which runs
+    // in Electron's Chromium and current browsers) relies on recent APIs such
+    // as Uint8Array#toHex that Node 22 lacks. Unit tests run in Node, so they
+    // use the official "legacy" build of the same version.
+    alias: [{ find: /^pdfjs-dist$/, replacement: "pdfjs-dist/legacy/build/pdf.mjs" }],
   },
 });

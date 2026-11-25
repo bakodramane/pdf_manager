@@ -1053,6 +1053,7 @@ function CanvasLayer({
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
         const render = page.render({
+          canvas,
           canvasContext: ctx,
           viewport,
           // Fillable fields are drawn by the form layer instead.

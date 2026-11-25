@@ -147,9 +147,28 @@ export async function extractPage(
       case OPS.setFillRGBColor:
         fillColor = toHex(args);
         break;
-      case OPS.constructPath:
-        path = parsePath(args, ctm);
+      case OPS.constructPath: {
+        // PDF.js 5+ merges the painting operator into constructPath.
+        const paint = args?.[0] as number;
+        const parsed = parsePath(args, ctm);
+        if (paint === OPS.stroke || paint === OPS.closeStroke) {
+          addStroke(parsed, hLines, vLines);
+        } else if (paint === OPS.fill || paint === OPS.eoFill) {
+          addFill(parsed, fillColor, hLines, vLines, fills);
+        } else if (
+          paint === OPS.fillStroke ||
+          paint === OPS.eoFillStroke ||
+          paint === OPS.closeFillStroke ||
+          paint === OPS.closeEOFillStroke
+        ) {
+          addFill(parsed, fillColor, hLines, vLines, fills);
+          addStroke(parsed, hLines, vLines);
+        } else {
+          // endPath (clipping only) or an older-style unpainted path.
+          path = paint === OPS.endPath ? null : parsed;
+        }
         break;
+      }
       case OPS.stroke:
       case OPS.closeStroke:
         if (path) addStroke(path, hLines, vLines);
@@ -226,7 +245,7 @@ function pushSplitOnWideSpaces(out: TextChunk[], c: TextChunk): void {
 }
 
 function toHex(args: unknown[]): string {
-  if (typeof args?.[0] === "string") return String(args[0]).replace("#", "");
+  if (typeof args?.[0] === "string") return String(args[0]).replace("#", "").toUpperCase();
   const [r, g, b] = Array.from(args as ArrayLike<number>).map((v) =>
     Math.max(0, Math.min(255, Math.round(Number(v) || 0))),
   );
@@ -247,61 +266,63 @@ interface ParsedPath {
 }
 
 function apply(m: Matrix, x: number, y: number): Pt {
-  return Util.applyTransform([x, y], m) as Pt;
+  // PDF.js 5+ transforms the point in place.
+  const p: Pt = [x, y];
+  Util.applyTransform(p, m);
+  return p;
 }
 
-function parsePath(args: unknown[], ctm: Matrix): ParsedPath {
-  const ops = (args?.[0] ?? []) as number[];
-  const coords = (args?.[1] ?? []) as number[];
+/** Path drawing codes used by PDF.js 5+ inside `constructPath` data. */
+const DRAW = { moveTo: 0, lineTo: 1, curveTo: 2, quadraticCurveTo: 3, closePath: 4 } as const;
+
+/**
+ * Parse a PDF.js 5+ `constructPath` operator. Its arguments are
+ * `[paintOp, [pathData], minMax]`, where `pathData` is a flat array of drawing
+ * codes, each followed by its coordinates. Rectangles (`re`) arrive as closed
+ * move/line sub-paths and are recognised later by `polylineRect`.
+ */
+export function parsePath(args: unknown[], ctm: Matrix): ParsedPath {
+  const container = args?.[1];
+  const data = (Array.isArray(container) ? container[0] : container) as ArrayLike<number> | undefined;
   const rects: ParsedPath["rects"] = [];
   const polylines: Pt[][] = [];
+  if (!data || typeof data.length !== "number") return { rects, polylines };
   let current: Pt[] = [];
   let curved = false;
-  let j = 0;
   const endSub = () => {
     if (current.length >= 2 && !curved) polylines.push(current);
     current = [];
     curved = false;
   };
-  for (const op of ops) {
+  let j = 0;
+  while (j < data.length) {
+    const op = data[j++];
     switch (op) {
-      case OPS.rectangle: {
-        const x = coords[j++];
-        const y = coords[j++];
-        const w = coords[j++];
-        const h = coords[j++];
-        const p = [apply(ctm, x, y), apply(ctm, x + w, y + h), apply(ctm, x + w, y), apply(ctm, x, y + h)];
-        const xs = p.map((q) => q[0]);
-        const ys = p.map((q) => q[1]);
-        // Only keep it if it is still axis-aligned after the transform.
-        const aligned =
-          Math.abs(p[0][1] - p[2][1]) < 0.5 || Math.abs(p[0][0] - p[2][0]) < 0.5;
-        if (aligned) {
-          rects.push([Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]);
-        }
-        break;
-      }
-      case OPS.moveTo:
+      case DRAW.moveTo:
         endSub();
-        current.push(apply(ctm, coords[j++], coords[j++]));
-        break;
-      case OPS.lineTo:
-        current.push(apply(ctm, coords[j++], coords[j++]));
-        break;
-      case OPS.curveTo:
-        j += 4;
-        current.push(apply(ctm, coords[j++], coords[j++]));
-        curved = true;
-        break;
-      case OPS.curveTo2:
-      case OPS.curveTo3:
+        current.push(apply(ctm, data[j], data[j + 1]));
         j += 2;
-        current.push(apply(ctm, coords[j++], coords[j++]));
-        curved = true;
         break;
-      case OPS.closePath:
+      case DRAW.lineTo:
+        current.push(apply(ctm, data[j], data[j + 1]));
+        j += 2;
+        break;
+      case DRAW.curveTo:
+        current.push(apply(ctm, data[j + 4], data[j + 5]));
+        curved = true;
+        j += 6;
+        break;
+      case DRAW.quadraticCurveTo:
+        current.push(apply(ctm, data[j + 2], data[j + 3]));
+        curved = true;
+        j += 4;
+        break;
+      case DRAW.closePath:
         if (current.length) current.push(current[0]);
         break;
+      default:
+        // Unknown code: stop rather than misread the remaining numbers.
+        j = data.length;
     }
   }
   endSub();
