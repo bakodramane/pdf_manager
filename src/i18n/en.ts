@@ -234,6 +234,69 @@ export const en = {
   "warning.attachments": "It contains attached files. PDF Manager does not open them.",
   "warning.xfa": "It uses an XFA form, which PDF Manager cannot display or fill.",
 
+  // OCR
+  "nav.ocr": "Recognise text",
+  "busy.cancel": "Cancel",
+  "busy.cancelling": "Cancelling…",
+  "ocr.title": "Recognise text (OCR)",
+  "ocr.description":
+    "Turn scanned pages into selectable, searchable text — on this device, in English and French.",
+  "ocr.settings": "Settings",
+  "ocr.scope": "Pages",
+  "ocr.scope.all": "All pages",
+  "ocr.scope.selected": "Selected pages",
+  "ocr.scope.range": "Page range",
+  "ocr.language": "Language of the document",
+  "ocr.lang.both": "English and French",
+  "ocr.lang.eng": "English",
+  "ocr.lang.fra": "French",
+  "ocr.quality": "Quality",
+  "ocr.quality.fast": "Fast (200 dpi) — for clean, large print",
+  "ocr.quality.standard": "Standard (300 dpi) — recommended",
+  "ocr.quality.high": "High (400 dpi) — small print; slower, more memory",
+  "ocr.includeText": "Also recognise pages that already contain text",
+  "ocr.includeTextWarning":
+    "Pages with existing text will get a second, OCR text layer: searches and copies may show the text twice.",
+  "ocr.button": "Recognise text",
+  "ocr.offlineDesktop": "Works offline: the recognition engine and the English and French models are included in the app.",
+  "ocr.offlineWeb":
+    "The recognition engine and language model ({size}) are loaded from this site the first time, then processing happens in your browser. Nothing is uploaded.",
+  "ocr.busy.starting": "Preparing text recognition…",
+  "ocr.busy.page": "Recognising page {page} ({done} of {total})…",
+  "ocr.busy.building": "Building the file…",
+  "ocr.done": "Text recognised on {count} page(s).",
+  "ocr.cancelled": "Recognition cancelled. Results kept for {count} page(s) (partial).",
+  "ocr.someFailed": "Recognition failed on page(s) {pages}. You can retry them.",
+  "ocr.results": "Results",
+  "ocr.stale": "The document changed since recognition. Run it again before saving a searchable PDF or converting.",
+  "ocr.summary": "{done} page(s) recognised, {skipped} skipped (already text), {failed} failed.",
+  "ocr.skippedText": "Skipped because they already contain text: page(s) {pages}.",
+  "ocr.lowConfidence":
+    "Low recognition confidence on page(s) {pages}. Check the text carefully; a cleaner or higher-resolution scan may help.",
+  "ocr.retryFailed": "Retry failed pages",
+  "ocr.saveSearchable": "Save searchable PDF",
+  "ocr.copy": "Copy text",
+  "ocr.saveText": "Save as .txt",
+  "ocr.toWord": "Word (from OCR)",
+  "ocr.toExcel": "Excel (from OCR)",
+  "ocr.convertHint":
+    "Word and Excel files made from recognised text are approximate: check names, numbers and dates before relying on them.",
+  "ocr.copied": "Text copied to the clipboard.",
+  "ocr.copyFailed": "The text could not be copied. Use “Save as .txt” instead.",
+  "ocr.pageLabel": "Page {page}",
+  "ocr.pageText": "Recognised text of page {page}",
+  "ocr.confidence": "confidence {value} %",
+  "ocr.low": "check carefully",
+  "ocr.editHint":
+    "You can correct the text above; corrections are used for “Copy text” and “Save as .txt”. The searchable PDF uses the recognised words and their positions.",
+  "ocr.limitsTitle": "Good to know",
+  "ocr.limit.confidence":
+    "Confidence is the engine’s own estimate, not a guarantee. Never treat recognised legal, financial or official figures as verified.",
+  "ocr.limit.orientation":
+    "Pages must be upright: rotate sideways or upside-down pages first (Pages tab).",
+  "ocr.limit.layout":
+    "The searchable PDF keeps each page exactly as it looks; only invisible text is added. Existing digital signatures will no longer be valid.",
+
   // Errors
   "error.splitPoints":
     "Provide at least one valid split point (e.g. 3, 7) inside the page range.",

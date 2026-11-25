@@ -14,7 +14,7 @@ export default defineConfig({
   reporter: [["list"]],
   use: { trace: "off" },
   projects: [
-    { name: "electron", testMatch: /electron\.spec\.ts/ },
+    { name: "electron", testMatch: /electron(-[a-z]+)?\.spec\.ts/ },
     {
       name: "web",
       testMatch: /web\.spec\.ts/,

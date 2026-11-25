@@ -232,6 +232,71 @@ export const fr: Messages = {
   "warning.attachments": "Il contient des fichiers joints. PDF Manager ne les ouvre pas.",
   "warning.xfa": "Il utilise un formulaire XFA, que PDF Manager ne peut ni afficher ni remplir.",
 
+  // OCR
+  "nav.ocr": "Reconnaître le texte",
+  "busy.cancel": "Annuler",
+  "busy.cancelling": "Annulation…",
+  "ocr.title": "Reconnaissance de texte (OCR)",
+  "ocr.description":
+    "Transformez des pages numérisées en texte sélectionnable et consultable — sur cet appareil, en anglais et en français.",
+  "ocr.settings": "Réglages",
+  "ocr.scope": "Pages",
+  "ocr.scope.all": "Toutes les pages",
+  "ocr.scope.selected": "Pages sélectionnées",
+  "ocr.scope.range": "Plage de pages",
+  "ocr.language": "Langue du document",
+  "ocr.lang.both": "Anglais et français",
+  "ocr.lang.eng": "Anglais",
+  "ocr.lang.fra": "Français",
+  "ocr.quality": "Qualité",
+  "ocr.quality.fast": "Rapide (200 ppp) — texte net et assez grand",
+  "ocr.quality.standard": "Standard (300 ppp) — recommandé",
+  "ocr.quality.high": "Élevée (400 ppp) — petits caractères ; plus lent, plus de mémoire",
+  "ocr.includeText": "Reconnaître aussi les pages qui contiennent déjà du texte",
+  "ocr.includeTextWarning":
+    "Les pages qui ont déjà du texte recevront une seconde couche de texte OCR : les recherches et copies pourront afficher le texte en double.",
+  "ocr.button": "Reconnaître le texte",
+  "ocr.offlineDesktop":
+    "Fonctionne hors ligne : le moteur de reconnaissance et les modèles anglais et français sont inclus dans l'application.",
+  "ocr.offlineWeb":
+    "Le moteur de reconnaissance et le modèle de langue ({size}) sont chargés depuis ce site la première fois, puis le traitement se fait dans votre navigateur. Rien n'est envoyé.",
+  "ocr.busy.starting": "Préparation de la reconnaissance de texte…",
+  "ocr.busy.page": "Reconnaissance de la page {page} ({done} sur {total})…",
+  "ocr.busy.building": "Création du fichier…",
+  "ocr.done": "Texte reconnu sur {count} page(s).",
+  "ocr.cancelled": "Reconnaissance annulée. Résultats conservés pour {count} page(s) (partiels).",
+  "ocr.someFailed": "La reconnaissance a échoué sur la ou les pages {pages}. Vous pouvez réessayer.",
+  "ocr.results": "Résultats",
+  "ocr.stale":
+    "Le document a changé depuis la reconnaissance. Relancez-la avant d'enregistrer un PDF consultable ou de convertir.",
+  "ocr.summary": "{done} page(s) reconnue(s), {skipped} ignorée(s) (déjà du texte), {failed} en échec.",
+  "ocr.skippedText": "Ignorées car elles contiennent déjà du texte : page(s) {pages}.",
+  "ocr.lowConfidence":
+    "Confiance de reconnaissance faible sur la ou les pages {pages}. Vérifiez attentivement le texte ; une numérisation plus nette ou de meilleure résolution peut aider.",
+  "ocr.retryFailed": "Réessayer les pages en échec",
+  "ocr.saveSearchable": "Enregistrer le PDF consultable",
+  "ocr.copy": "Copier le texte",
+  "ocr.saveText": "Enregistrer en .txt",
+  "ocr.toWord": "Word (depuis l'OCR)",
+  "ocr.toExcel": "Excel (depuis l'OCR)",
+  "ocr.convertHint":
+    "Les fichiers Word et Excel créés à partir du texte reconnu sont approximatifs : vérifiez les noms, nombres et dates avant de vous y fier.",
+  "ocr.copied": "Texte copié dans le presse-papiers.",
+  "ocr.copyFailed": "Le texte n'a pas pu être copié. Utilisez plutôt « Enregistrer en .txt ».",
+  "ocr.pageLabel": "Page {page}",
+  "ocr.pageText": "Texte reconnu de la page {page}",
+  "ocr.confidence": "confiance {value} %",
+  "ocr.low": "à vérifier",
+  "ocr.editHint":
+    "Vous pouvez corriger le texte ci-dessus ; les corrections servent à « Copier le texte » et « Enregistrer en .txt ». Le PDF consultable utilise les mots reconnus et leurs positions.",
+  "ocr.limitsTitle": "Bon à savoir",
+  "ocr.limit.confidence":
+    "La confiance est une estimation du moteur, pas une garantie. Ne considérez jamais des chiffres juridiques, financiers ou officiels reconnus comme vérifiés.",
+  "ocr.limit.orientation":
+    "Les pages doivent être à l'endroit : faites d'abord pivoter les pages couchées ou à l'envers (onglet Pages).",
+  "ocr.limit.layout":
+    "Le PDF consultable conserve chaque page à l'identique ; seul du texte invisible est ajouté. Les signatures numériques existantes ne seront plus valides.",
+
   // Erreurs
   "error.splitPoints":
     "Indiquez au moins un point de découpe valide (ex. 3, 7) dans la plage de pages.",

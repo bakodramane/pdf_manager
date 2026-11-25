@@ -5,7 +5,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import styles from "./App.module.css";
@@ -14,6 +13,8 @@ import { FileDrop } from "./components/FileDrop";
 import { PageGrid } from "./components/PageGrid";
 import { Icon, type IconName } from "./components/Icon";
 import { Dialog } from "./components/Dialog";
+import { PanelHeader, Section } from "./components/Panel";
+import { OcrPanel } from "./components/OcrPanel";
 import { Viewer, type ViewerHandle, type Zoom } from "./components/Viewer";
 import { useShortcuts } from "./hooks/useShortcuts";
 import { SHORTCUT_LIST, keyLabel, type ShortcutAction } from "./hooks/shortcuts";
@@ -29,12 +30,13 @@ import { LANGUAGES, useI18n, type Lang, type MessageKey } from "./i18n";
 import { AUTHOR } from "./about";
 import { onDesktopMenuCommand, setDesktopLanguage, type MenuCommand } from "./desktop";
 
-type Tab = "pages" | "merge" | "annotate" | "compress" | "convert" | "export";
+type Tab = "pages" | "merge" | "annotate" | "ocr" | "compress" | "convert" | "export";
 
 const TABS: { id: Tab; label: MessageKey; icon: IconName }[] = [
   { id: "pages", label: "nav.pages", icon: "pages" },
   { id: "merge", label: "nav.merge", icon: "merge" },
   { id: "annotate", label: "nav.annotate", icon: "annotate" },
+  { id: "ocr", label: "nav.ocr", icon: "scan" },
   { id: "compress", label: "nav.compress", icon: "compress" },
   { id: "convert", label: "nav.convert", icon: "convert" },
   { id: "export", label: "nav.export", icon: "export" },
@@ -121,17 +123,26 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [notice]);
 
-  /** Run an async action with a global loading state + error capture. */
+  /** Abort controller of the running cancellable action, if any. */
+  const [cancelRun, setCancelRun] = useState<AbortController | null>(null);
+
+  /**
+   * Run an async action with a global loading state + error capture. A
+   * cancellable action gets an AbortSignal and a Cancel button.
+   */
   const run = useCallback<RunFn>(
-    async (label, fn) => {
+    async (label, fn, options) => {
       setNotice(null);
       setBusy(label);
+      const controller = new AbortController();
+      if (options?.cancellable) setCancelRun(controller);
       try {
-        await fn((status) => setBusy(status));
+        await fn((status) => setBusy(status), controller.signal);
       } catch (err) {
-        showError(formatError(err));
+        if (!controller.signal.aborted) showError(formatError(err));
       } finally {
         setBusy(null);
+        setCancelRun(null);
       }
     },
     [formatError, showError],
@@ -381,6 +392,18 @@ export default function App() {
           {tab === "pages" && <PagesPanel {...ctx} />}
           {tab === "merge" && <MergeSplitPanel {...ctx} />}
           {tab === "annotate" && <AnnotatePanel {...ctx} />}
+          {tab === "ocr" && (
+            <OcrPanel
+              pages={pages}
+              selected={selected}
+              hasPages={hasPages}
+              baseName={baseName}
+              assemble={assemble}
+              run={run}
+              showSuccess={showSuccess}
+              showError={showError}
+            />
+          )}
           {tab === "compress" && <CompressPanel {...ctx} />}
           {tab === "convert" && <ConvertPanel {...ctx} />}
           {tab === "export" && <ExportPanel {...ctx} />}
@@ -463,6 +486,17 @@ export default function App() {
           <div className={styles.overlayCard}>
             <div className={styles.spinner} />
             <div>{busy}</div>
+            {cancelRun && (
+              <button
+                onClick={() => {
+                  cancelRun.abort();
+                  setBusy(t("busy.cancelling"));
+                }}
+                disabled={cancelRun.signal.aborted}
+              >
+                {t("busy.cancel")}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -501,7 +535,8 @@ export default function App() {
 type EditorApi = ReturnType<typeof useEditor>;
 type RunFn = (
   label: string,
-  fn: (setStatus: (status: string) => void) => Promise<void>,
+  fn: (setStatus: (status: string) => void, signal: AbortSignal) => Promise<void>,
+  options?: { cancellable?: boolean },
 ) => Promise<void>;
 type AssembleFn = () => Promise<Uint8Array>;
 
@@ -763,25 +798,6 @@ function IconButton({
     >
       <Icon name={icon} size={18} />
     </button>
-  );
-}
-
-function PanelHeader({ title, description }: { title: MessageKey; description: MessageKey }) {
-  const { t } = useI18n();
-  return (
-    <div className={styles.panelHeader}>
-      <h2>{t(title)}</h2>
-      <p>{t(description)}</p>
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className={styles.section}>
-      <h3>{title}</h3>
-      {children}
-    </section>
   );
 }
 

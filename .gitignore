@@ -20,3 +20,4 @@ public/ocr/
 # Playwright
 playwright-report/
 test-results/
+public/fonts/

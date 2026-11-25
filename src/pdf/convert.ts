@@ -25,23 +25,35 @@ import {
  * tables) or from column alignment (borderless tables); images are re-embedded
  * in Word output.
  *
- * Limits: no OCR (scanned pages come through as images only), text colour and
+ * Scanned pages: run OCR first (OCR panel) to convert a searchable copy;
+ * otherwise they come through as images only. Limits: text colour and
  * vector drawings/charts are not reproduced, and complex layouts are
  * approximated. docx and exceljs are large, so they are loaded on demand.
  */
 
 export type ProgressFn = (done: number, total: number) => void;
 
+/** Options for OCR-assisted conversion of searchable PDFs. */
+export interface ConvertOptions {
+  /**
+   * Zero-based pages whose text came from OCR: their full-page scan image
+   * is left out of Word output (the recognised text replaces it).
+   */
+  ocrPages?: ReadonlySet<number>;
+}
+
 async function analyzeDocument(
   doc: PDFDocumentProxy,
   images: boolean,
   onProgress?: ProgressFn,
+  options: ConvertOptions = {},
 ): Promise<PageLayout[]> {
   const out: PageLayout[] = [];
   for (let p = 1; p <= doc.numPages; p++) {
     const page = await doc.getPage(p);
     try {
-      out.push(analyzePage(await extractPage(page, { images })));
+      const withImages = images && !options.ocrPages?.has(p - 1);
+      out.push(analyzePage(await extractPage(page, { images: withImages })));
     } finally {
       page.cleanup();
     }
@@ -272,9 +284,10 @@ function docxImage(
 export async function pdfToDocx(
   doc: PDFDocumentProxy,
   onProgress?: ProgressFn,
+  options: ConvertOptions = {},
 ): Promise<Uint8Array> {
   const D = await import("docx");
-  const layouts = await analyzeDocument(doc, true, onProgress);
+  const layouts = await analyzeDocument(doc, true, onProgress, options);
 
   // Document-wide default font = the most common body font.
   const fontCount = new Map<string, number>();
