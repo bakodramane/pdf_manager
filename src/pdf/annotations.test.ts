@@ -67,7 +67,7 @@ describe("drawing annotations on export", () => {
       x: 20,
       y: 30,
       angle: 0,
-      text: "Hello — été\nline two ✓",
+      text: "Hello — été\nline two « œuvre » 5 €",
       size: 12,
       font: "times",
       bold: true,
@@ -98,6 +98,46 @@ describe("drawing annotations on export", () => {
     expect(xobjects).toBeDefined();
     expect(page.node.Contents()).toBeInstanceOf(PDFArray);
     expect(page.getRotation().angle).toBe(90);
+  });
+
+  async function exportText(text: string): Promise<Uint8Array> {
+    const src = await source();
+    const a: TextAnnotation = {
+      id: "u", kind: "text", x: 20, y: 30, angle: 0, text, size: 14,
+      font: "helvetica", bold: false, italic: false, color: "#000000",
+    };
+    return assemblePdf([{ id: "p", sourceId: "s", pageIndex: 0, rotation: 0, annotations: [a] }], () => src);
+  }
+
+  it("keeps English and French text in the standard fonts (no embedded font)", async () => {
+    const out = await PDFDocument.load(await exportText("Été, cœur, « guillemets », 12,50 € — Œuvre"));
+    const fonts = out.getPage(0).node.Resources()!.lookup(PDFName.of("Font")) as import("pdf-lib").PDFDict;
+    const names = fonts.values().map((ref) => (out.context.lookup(ref) as import("pdf-lib").PDFDict).get(PDFName.of("BaseFont"))?.toString());
+    expect(names.join(" ")).toMatch(/Helvetica/);
+    expect(names.join(" ")).not.toMatch(/Noto/);
+  });
+
+  it("embeds the Unicode font for characters outside the standard fonts", async () => {
+    const bytes = await exportText("Łódź, Kraków — Αθήνα — Київ — Nguyễn");
+    const out = await PDFDocument.load(bytes);
+    const fonts = out.getPage(0).node.Resources()!.lookup(PDFName.of("Font")) as import("pdf-lib").PDFDict;
+    const names = fonts.values().map((ref) => (out.context.lookup(ref) as import("pdf-lib").PDFDict).get(PDFName.of("BaseFont"))?.toString());
+    expect(names.join(" ")).toMatch(/NotoSans/);
+    // Extracted text (PDF.js) is the original, not "?" replacements.
+    const pdfjs = await import("pdfjs-dist");
+    const task = pdfjs.getDocument({ data: bytes.slice() });
+    const content = await (await (await task.promise).getPage(1)).getTextContent();
+    await task.destroy();
+    const extracted = content.items.map((i) => ("str" in i ? i.str : "")).join("");
+    expect(extracted).toContain("Łódź");
+    expect(extracted).toContain("Αθήνα");
+    expect(extracted).toContain("Київ");
+    expect(extracted).toContain("Nguyễn");
+    expect(extracted).not.toContain("?");
+  });
+
+  it("refuses characters no bundled font has, instead of writing '?'", async () => {
+    await expect(exportText("Hello 你好 ✓")).rejects.toMatchObject({ code: "unsupportedChars" });
   });
 
   it("keeps two copies of one page independent", async () => {

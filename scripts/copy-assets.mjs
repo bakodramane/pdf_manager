@@ -44,6 +44,8 @@ const FILES = [
   // Unicode font embedded in exported PDFs (OCR text layer, annotations).
   ["@expo-google-fonts/noto-sans/400Regular/NotoSans_400Regular.ttf", "fonts/NotoSans-Regular.ttf"],
   ["@expo-google-fonts/noto-sans/700Bold/NotoSans_700Bold.ttf", "fonts/NotoSans-Bold.ttf"],
+  ["@expo-google-fonts/noto-sans/400Regular_Italic/NotoSans_400Regular_Italic.ttf", "fonts/NotoSans-Italic.ttf"],
+  ["@expo-google-fonts/noto-sans/700Bold_Italic/NotoSans_700Bold_Italic.ttf", "fonts/NotoSans-BoldItalic.ttf"],
   ["@expo-google-fonts/noto-sans/LICENSE_FONT", "fonts/OFL.txt"],
 ];
 

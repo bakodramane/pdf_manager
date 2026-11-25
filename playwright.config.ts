@@ -1,5 +1,10 @@
 import { defineConfig } from "@playwright/test";
 
+// Chromium on Linux decodes file paths with the locale's encoding; CI
+// containers often have none, which breaks fixture paths with accents.
+process.env.LANG ||= "C.UTF-8";
+process.env.LC_ALL ||= "C.UTF-8";
+
 // End-to-end tests. Both projects run against the production build in dist/
 // (run `npm run build` first):
 // - electron: launches the real Electron shell (PDF_MANAGER_USE_DIST=1) and

@@ -9,5 +9,7 @@
   "ocr/lang/fra.traineddata.gz": "d611139672b3752c7097e671e4a1d9209dfd37f2aeb081ef6487fba3351e9255",
   "fonts/NotoSans-Regular.ttf": "fe8c022f48d8dd29f17b744d16f9346f4357e16f7d4f7be58b000ae7c291b614",
   "fonts/NotoSans-Bold.ttf": "13a813c49624ae3ba3c5c6e72c5ebffc4b9e1e6ea32f421c04069b037c6ad431",
+  "fonts/NotoSans-Italic.ttf": "feb3e57888ce3acb604f270c278cfb304c674306518771619ddbdefca42a066b",
+  "fonts/NotoSans-BoldItalic.ttf": "7e34616e092593c340449baf9a259075a054c6419511ccf21ff0d83a1c9dd0d0",
   "fonts/OFL.txt": "cee9892f9f0cc8fe882c9e9537ee6a89621d86ee7ceaf70b02e2b2b1c25c061a"
 }

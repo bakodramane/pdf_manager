@@ -7,7 +7,10 @@ import {
   type PDFImage,
   type PDFPage,
 } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
 import type { Annotation, FontFamily, ImageAnnotation, TextAnnotation } from "./types";
+import { AppError } from "./errors";
+import { loadUnicodeFont, styleOf, type UnicodeFontStyle } from "./fonts";
 
 /**
  * Editable annotations are drawn into the page when the document is
@@ -99,20 +102,35 @@ export function hexToRgb(hex: string) {
   return rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
 }
 
-/**
- * The standard PDF fonts only cover WinAnsi (Western European) characters;
- * replace anything else so drawing never fails.
- */
-export function encodableText(font: PDFFont, text: string): string {
-  const supported = new Set(font.getCharacterSet());
-  return Array.from(text.replace(/\r\n?/g, "\n").replace(/\t/g, "    "))
-    .map((ch) => (ch === "\n" || supported.has(ch.codePointAt(0)!) ? ch : "?"))
-    .join("");
+/** Normalise line breaks and tabs, and compose accents (NFC). */
+export function normaliseAnnotationText(text: string): string {
+  return text.normalize("NFC").replace(/\r\n?/g, "\n").replace(/\t/g, "    ");
+}
+
+const charSets = new WeakMap<PDFFont, Set<number>>();
+function charSet(font: PDFFont): Set<number> {
+  let set = charSets.get(font);
+  if (!set) {
+    set = new Set(font.getCharacterSet());
+    charSets.set(font, set);
+  }
+  return set;
+}
+
+/** Characters of `text` (other than line breaks) that `font` cannot encode. */
+export function unsupportedChars(font: PDFFont, text: string): string[] {
+  const set = charSet(font);
+  const missing = new Set<string>();
+  for (const ch of text) {
+    if (ch !== "\n" && !set.has(ch.codePointAt(0)!)) missing.add(ch);
+  }
+  return [...missing];
 }
 
 /** Caches fonts and images embedded in one output document. */
 export class EmbedCache {
   private fonts = new Map<StandardFonts, Promise<PDFFont>>();
+  private unicodeFonts = new Map<UnicodeFontStyle, Promise<PDFFont>>();
   private images = new Map<Uint8Array, Promise<PDFImage>>();
 
   constructor(private doc: PDFDocument) {}
@@ -122,6 +140,22 @@ export class EmbedCache {
     if (!f) {
       f = this.doc.embedFont(name);
       this.fonts.set(name, f);
+    }
+    return f;
+  }
+
+  /**
+   * Noto Sans in the given style, embedded in full: pdf-lib's subsetter
+   * corrupts this font's glyph outlines (text still extracts, but renders
+   * wrongly), so correctness wins over size. Only loaded when a text
+   * annotation needs characters outside the standard fonts.
+   */
+  unicodeFont(style: UnicodeFontStyle): Promise<PDFFont> {
+    let f = this.unicodeFonts.get(style);
+    if (!f) {
+      this.doc.registerFontkit(fontkit);
+      f = loadUnicodeFont(style).then((bytes) => this.doc.embedFont(bytes, { subset: false }));
+      this.unicodeFonts.set(style, f);
     }
     return f;
   }
@@ -141,11 +175,28 @@ function cropBox(page: PDFPage): Box {
   return { x, y, width, height };
 }
 
+/** Baseline offset of Noto Sans at LINE_HEIGHT (ascent 1.069, descent 0.293). */
+const UNICODE_BASELINE = 0.988;
+
 async function drawText(page: PDFPage, a: TextAnnotation, cache: EmbedCache) {
-  const font = await cache.font(standardFont(a.font, a.bold, a.italic));
-  const text = encodableText(font, a.text);
+  const text = normaliseAnnotationText(a.text);
   if (!text.trim()) return;
-  const origin = toPdfPoint(cropBox(page), a, 0, BASELINE[a.font] * a.size);
+  // The standard fonts cover English and French (WinAnsi, incl. œ, €, « »).
+  // Anything else switches this annotation to the embedded Unicode font;
+  // characters no bundled font has are reported, never replaced.
+  let font = await cache.font(standardFont(a.font, a.bold, a.italic));
+  let baseline = BASELINE[a.font];
+  if (unsupportedChars(font, text).length) {
+    font = await cache.unicodeFont(styleOf(a.bold, a.italic));
+    baseline = UNICODE_BASELINE;
+    const missing = unsupportedChars(font, text);
+    if (missing.length) {
+      throw new AppError("unsupportedChars", `Unsupported characters: ${missing.join(" ")}`, {
+        chars: missing.slice(0, 12).join(" "),
+      });
+    }
+  }
+  const origin = toPdfPoint(cropBox(page), a, 0, baseline * a.size);
   page.drawText(text, {
     x: origin.x,
     y: origin.y,

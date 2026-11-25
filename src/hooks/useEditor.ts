@@ -10,10 +10,12 @@ import type {
 } from "../pdf/types";
 import {
   deletePages,
+  duplicatePages,
   extractPages,
   insertPages,
   movePage,
   rotatePages,
+  shiftPages,
 } from "../pdf/operations";
 import { dropRenderDoc } from "../pdf/render";
 import { dropPageInfo } from "../pdf/pageInfo";
@@ -191,6 +193,21 @@ export function useEditor() {
     commit((prev) => extractPages(prev, selected));
   }, [selected, commit]);
 
+  /** Duplicate the selected pages (each copy right after its original). */
+  const duplicateSelected = useCallback(() => {
+    if (selected.size === 0) return;
+    commit((prev) => duplicatePages(prev, selected, makeId));
+  }, [selected, commit]);
+
+  /** Move the selected pages one step earlier or later (keyboard reordering). */
+  const shiftSelected = useCallback(
+    (step: -1 | 1) => {
+      if (selected.size === 0) return;
+      commit((prev) => shiftPages(prev, selected, step));
+    },
+    [selected, commit],
+  );
+
   const reorder = useCallback(
     (from: number, to: number) => commit((prev) => movePage(prev, from, to)),
     [commit],
@@ -295,6 +312,8 @@ export function useEditor() {
     rotateSelected,
     extractSelected,
     reorder,
+    duplicateSelected,
+    shiftSelected,
     insertFromFile,
     replaceWithBytes,
     addAnnotation,

@@ -20,7 +20,8 @@ export type ErrorCode =
   | "missingSource"
   | "invalidRange"
   | "rangeOutOfBounds"
-  | "imageType";
+  | "imageType"
+  | "unsupportedChars";
 
 export class AppError extends Error {
   constructor(

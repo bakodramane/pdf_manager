@@ -15,12 +15,14 @@ import { Icon, type IconName } from "./components/Icon";
 import { Dialog } from "./components/Dialog";
 import { PanelHeader, Section } from "./components/Panel";
 import { OcrPanel } from "./components/OcrPanel";
+import { ToolsPanel } from "./components/ToolsPanel";
 import { Viewer, type ViewerHandle, type Zoom } from "./components/Viewer";
 import { useShortcuts } from "./hooks/useShortcuts";
 import { SHORTCUT_LIST, keyLabel, type ShortcutAction } from "./hooks/shortcuts";
 import { assemblePdf, deriveName, downloadBytes } from "./pdf/assemble";
 import { extractPages, parsePageRanges, splitIntoRanges } from "./pdf/operations";
-import { compressPdf } from "./pdf/compress";
+import { compressPdf, type CompressionProfile } from "./pdf/compress";
+import { formatBytes } from "./format";
 import { dropRenderDoc, getRenderDoc } from "./pdf/render";
 import { pdfToDocx, pdfToXlsx } from "./pdf/convert";
 import { AppError } from "./pdf/errors";
@@ -30,11 +32,12 @@ import { LANGUAGES, useI18n, type Lang, type MessageKey } from "./i18n";
 import { AUTHOR } from "./about";
 import { onDesktopMenuCommand, setDesktopLanguage, type MenuCommand } from "./desktop";
 
-type Tab = "pages" | "merge" | "annotate" | "ocr" | "compress" | "convert" | "export";
+type Tab = "pages" | "merge" | "tools" | "annotate" | "ocr" | "compress" | "convert" | "export";
 
 const TABS: { id: Tab; label: MessageKey; icon: IconName }[] = [
   { id: "pages", label: "nav.pages", icon: "pages" },
   { id: "merge", label: "nav.merge", icon: "merge" },
+  { id: "tools", label: "nav.tools", icon: "tools" },
   { id: "annotate", label: "nav.annotate", icon: "annotate" },
   { id: "ocr", label: "nav.ocr", icon: "scan" },
   { id: "compress", label: "nav.compress", icon: "compress" },
@@ -391,6 +394,25 @@ export default function App() {
         <aside className={styles.panel}>
           {tab === "pages" && <PagesPanel {...ctx} />}
           {tab === "merge" && <MergeSplitPanel {...ctx} />}
+          {tab === "tools" && (
+            <ToolsPanel
+              pages={pages}
+              selected={selected}
+              hasPages={hasPages}
+              baseName={baseName}
+              assemble={assemble}
+              run={run}
+              insertPdf={async (bytes, name, after) => {
+                const { error } = await editor.insertFromFile(
+                  new File([bytes.slice()], name, { type: "application/pdf" }),
+                  after,
+                );
+                if (error) throw error;
+              }}
+              replaceAll={editor.replaceWithBytes}
+              showSuccess={showSuccess}
+            />
+          )}
           {tab === "annotate" && <AnnotatePanel {...ctx} />}
           {tab === "ocr" && (
             <OcrPanel
@@ -868,6 +890,22 @@ function PagesPanel({
           </button>
         </div>
         <div className={styles.row}>
+          <button disabled={!hasSelection} onClick={editor.duplicateSelected}>
+            <Icon name="copy" size={16} />
+            {t("pages.duplicate")}
+          </button>
+        </div>
+        <div className={styles.row}>
+          <button disabled={!hasSelection} onClick={() => editor.shiftSelected(-1)}>
+            <Icon name="arrowUp" size={16} />
+            {t("pages.moveEarlier")}
+          </button>
+          <button disabled={!hasSelection} onClick={() => editor.shiftSelected(1)}>
+            <Icon name="arrowDown" size={16} />
+            {t("pages.moveLater")}
+          </button>
+        </div>
+        <div className={styles.row}>
           <button disabled={!hasSelection} onClick={editor.extractSelected}>
             <Icon name="keep" size={16} />
             {t("pages.keepOnly")}
@@ -1031,26 +1069,63 @@ function AnnotatePanel({ editor, hasPages, showError, view, openDocument, viewer
 
 function CompressPanel({ editor, run, assemble, hasPages }: PanelCtx) {
   const { t } = useI18n();
-  const [result, setResult] = useState<string | null>(null);
+  const [profile, setProfile] = useState<CompressionProfile>("balanced");
+  const [result, setResult] = useState<{ text: string; kind: "success" | "warning" } | null>(null);
   const doCompress = () =>
-    run(t("busy.compressing"), async () => {
-      const before = await assemble();
-      const after = await compressPdf(before);
-      const pct = Math.max(0, Math.round((1 - after.length / before.length) * 100));
-      editor.replaceWithBytes(after, "compressed.pdf", editor.pages.length);
-      setResult(
-        t("compress.result", { pct, before: fmt(before.length), after: fmt(after.length) }),
-      );
-    });
+    run(
+      t("busy.compressing"),
+      async (setStatus, signal) => {
+        setResult(null);
+        const before = await assemble();
+        const { browserCodec } = await import("./components/imageCodec");
+        const out = await compressPdf(before, profile, browserCodec, signal, (done, total) =>
+          setStatus(t("compress.progress", { done, total })),
+        );
+        const sizes = { before: formatBytes(before.length), after: formatBytes(out.bytes.length) };
+        if (out.bytes.length >= before.length) {
+          // Never make the document bigger: keep the original.
+          setResult({ kind: "warning", text: t("compress.noGain", sizes) });
+          return;
+        }
+        const pct = Math.round((1 - out.bytes.length / before.length) * 100);
+        editor.replaceWithBytes(out.bytes, "compressed.pdf", editor.pages.length);
+        setResult({
+          kind: "success",
+          text:
+            t("compress.result", { pct, ...sizes }) +
+            (out.images ? " " + t("compress.imagesResult", { count: out.images.optimised, skipped: out.images.skipped }) : ""),
+        });
+      },
+      { cancellable: true },
+    );
+  const profiles: CompressionProfile[] = ["lossless", "balanced", "strong"];
   return (
     <>
       <PanelHeader title="compress.title" description="compress.description" />
       <Section title={t("compress.title")}>
+        <fieldset className={styles.fieldset}>
+          <legend>{t("compress.profile")}</legend>
+          {profiles.map((p) => (
+            <label key={p} className={styles.radio}>
+              <input type="radio" name="compress-profile" checked={profile === p} onChange={() => setProfile(p)} />
+              <span>
+                <strong>{t(`compress.profile.${p}` as MessageKey)}</strong>
+                <br />
+                <small>{t(`compress.profile.${p}Hint` as MessageKey)}</small>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+        {profile !== "lossless" && <p className={styles.warning}>{t("compress.lossyWarning")}</p>}
         <button className="primary block" disabled={!hasPages} onClick={doCompress}>
           <Icon name="compress" size={16} />
           {t("compress.button")}
         </button>
-        {result && <p className={styles.success}>{result}</p>}
+        {result && (
+          <p className={result.kind === "success" ? styles.success : styles.warning} role="status">
+            {result.text}
+          </p>
+        )}
         <p>{t("compress.hint")}</p>
       </Section>
     </>
@@ -1136,10 +1211,4 @@ function ExportPanel({ hasPages, exportPdf }: PanelCtx) {
       </Section>
     </>
   );
-}
-
-function fmt(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

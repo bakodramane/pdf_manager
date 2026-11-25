@@ -8,6 +8,7 @@ import { hasUsefulText } from "./detect";
 import { rasterizePage } from "./rasterize";
 import { addOcrTextLayer, markOcrProducer } from "./textLayer";
 import type { OcrLanguage, OcrPage } from "./types";
+import { loadUnicodeFont } from "../fonts";
 
 export type OcrQuality = "fast" | "standard" | "high";
 
@@ -110,20 +111,9 @@ export async function recognizePdf(bytes: Uint8Array, options: OcrRunOptions): P
   return result;
 }
 
-let fontPromise: Promise<Uint8Array> | null = null;
 /** The bundled Unicode font (same origin), fetched once. */
 export function loadTextFont(): Promise<Uint8Array> {
-  fontPromise ??= fetch(new URL("fonts/NotoSans-Regular.ttf", document.baseURI).href)
-    .then((r) => {
-      if (!r.ok) throw new Error("Bundled font missing.");
-      return r.arrayBuffer();
-    })
-    .then((b) => new Uint8Array(b))
-    .catch((err) => {
-      fontPromise = null;
-      throw err;
-    });
-  return fontPromise;
+  return loadUnicodeFont("regular");
 }
 
 /** Build a new searchable PDF: the original pages plus an invisible OCR text layer. */
