@@ -21,3 +21,6 @@ public/ocr/
 playwright-report/
 test-results/
 public/fonts/
+
+# Build metadata (bundled package list, notices, SBOM) — generated
+build-meta/

@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      tooling:
+        patterns: ["vite*", "vitest*", "@vitejs/*", "eslint*", "@eslint/*", "typescript*", "@playwright/*", "globals"]
+      electron:
+        patterns: ["electron", "electron-builder"]
+    # OCR assets are digest-pinned (scripts/asset-digests.json): their
+    # updates need a manual digest refresh, so Dependabot PRs will fail the
+    # build until a maintainer reviews and runs `npm run assets -- --update-digests`.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

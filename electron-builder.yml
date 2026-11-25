@@ -18,6 +18,14 @@ files:
   - "!electron/**/*.test.*"  # never ship tests
   - "!**/*.map"        # never ship source maps
 
+# Licence and third-party notices next to the executable (also inside the
+# app). Electron adds LICENSE.electron.txt and LICENSES.chromium.html itself.
+extraFiles:
+  - from: LICENSE
+    to: LICENSE.txt
+  - from: dist/THIRD-PARTY-NOTICES.txt
+    to: THIRD-PARTY-NOTICES.txt
+
 # Size: Chromium ships ~55 UI locale packs (~45 MB unpacked). The app's UI is
 # its own, so only Chromium's built-in strings (context menus, dialogs) use
 # these; keep English and French.
@@ -36,8 +44,8 @@ compression: maximum
 electronDist: node_modules/electron/dist
 
 asar: true             # pack source into an asar archive (packaging, not a security boundary)
-asarUnpack:            # unpack assets PDF.js needs to read at runtime
-  - "dist/pdfjs/**"
+# Nothing is unpacked: the app:// protocol handler reads every asset through
+# the ASAR archive, so all of it is covered by ASAR integrity validation.
 
 # Electron fuses, flipped in the binary before signing. They switch off
 # ways of turning the shipped executable into a generic Node.js runtime or
@@ -55,6 +63,12 @@ electronFuses:
 win:
   icon: build/icon.ico               # app, shortcut, and installer icon
   requestedExecutionLevel: asInvoker  # never request admin elevation
+  # Authenticode: provider-neutral hook, configured only through CI
+  # environment variables (see build/sign.cjs and docs/release/signing.md).
+  # Without configuration the build is explicitly UNSIGNED.
+  signtoolOptions:
+    sign: build/sign.cjs
+    signingHashAlgorithms: [sha256]
   target:
     - target: portable
       arch: [x64]

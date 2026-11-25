@@ -1,0 +1,175 @@
+# Release preparation. Produces a DRAFT GitHub release only; a maintainer
+# reviews and publishes it by hand. Never pushes tags or publishes.
+#
+# Signing: when "signed" is true the Windows job runs in the protected
+# "release-signing" environment (required reviewers recommended), whose
+# variables/secrets configure build/sign.cjs. Missing or failing signing
+# fails the run (PDFM_REQUIRE_SIGNING=1). Unsigned runs are labelled
+# UNSIGNED everywhere. See docs/release/signing.md.
+name: Release (draft)
+
+on:
+  workflow_dispatch:
+    inputs:
+      signed:
+        description: "Sign Windows binaries (requires the release-signing environment to be configured)"
+        type: boolean
+        default: false
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: Version consistency
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      signed: ${{ steps.v.outputs.signed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: v
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          SIGNED_INPUT: ${{ inputs.signed }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "$REF_TYPE" = "tag" ] && [ "$REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $REF_NAME does not match package.json version $version"; exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          # Tag pushes never sign implicitly; signing is an explicit manual choice.
+          echo "signed=${SIGNED_INPUT:-false}" >> "$GITHUB_OUTPUT"
+
+  checks:
+    needs: version
+    uses: ./.github/workflows/ci.yml
+
+  windows:
+    name: Windows x64 (${{ needs.version.outputs.signed == 'true' && 'signed' || 'UNSIGNED' }})
+    needs: [version, checks]
+    runs-on: windows-latest
+    environment: ${{ needs.version.outputs.signed == 'true' && 'release-signing' || 'release-unsigned' }}
+    timeout-minutes: 60
+    env:
+      PDFM_REQUIRE_SIGNING: ${{ needs.version.outputs.signed == 'true' && '1' || '0' }}
+      # Provided by the protected environment (variables, not committed):
+      PDFM_SIGN_MODE: ${{ vars.PDFM_SIGN_MODE }}
+      PDFM_SIGNTOOL_ARGS: ${{ vars.PDFM_SIGNTOOL_ARGS }}
+      PDFM_TIMESTAMP_URL: ${{ vars.PDFM_TIMESTAMP_URL }}
+      PDFM_EXPECTED_PUBLISHER: ${{ vars.PDFM_EXPECTED_PUBLISHER }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          # No dependency cache in the release job: install fresh from the lockfile.
+      - run: npm ci
+      - run: npm run build
+      - name: Locate signtool (Windows SDK)
+        if: env.PDFM_SIGN_MODE == 'signtool'
+        shell: pwsh
+        run: |
+          $st = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+            Where-Object { $_.FullName -match '\\x64\\' } | Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $st) { throw "signtool.exe not found" }
+          "PDFM_SIGNTOOL=$($st.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+      # Add the provider's login step here when the maintainer chooses one
+      # (for example azure/login with OIDC for Azure Artifact Signing).
+      - name: Package (portable + per-user NSIS)
+        run: npx electron-builder --win portable nsis --publish never
+      - name: Verify signatures (fails closed when signing is required)
+        shell: pwsh
+        run: |
+          if ($env:PDFM_REQUIRE_SIGNING -eq "1") { ./scripts/verify-signatures.ps1 -Path release -RequireSigned }
+          else { ./scripts/verify-signatures.ps1 -Path release }
+      - name: Label unsigned artifacts
+        if: needs.version.outputs.signed != 'true'
+        shell: pwsh
+        run: |
+          Get-ChildItem release -Filter *.exe | ForEach-Object {
+            Rename-Item $_.FullName ($_.BaseName + "-UNSIGNED" + $_.Extension)
+          }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows
+          path: release/*.exe
+          if-no-files-found: error
+
+  web:
+    name: Web edition and SBOMs
+    needs: [version, checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci
+      - run: npm run build
+      - name: Package web edition
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          mkdir -p out
+          (cd dist && zip -qr "../out/PDF-Manager-$VERSION-web.zip" .)
+          cp build-meta/sbom-shipped.cdx.json "out/PDF-Manager-$VERSION-sbom-shipped.cdx.json"
+          cp dist/THIRD-PARTY-NOTICES.txt "out/PDF-Manager-$VERSION-THIRD-PARTY-NOTICES.txt"
+          npx --yes @cyclonedx/cyclonedx-npm@7.0.1 --output-format JSON --output-file "out/PDF-Manager-$VERSION-sbom-build-tree.cdx.json"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web
+          path: out/*
+          if-no-files-found: error
+
+  draft:
+    name: Checksums, provenance, draft release
+    needs: [version, windows, web]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the draft release
+      id-token: write # build provenance attestations
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: assets
+          merge-multiple: true
+      - name: SHA-256 checksums over the final bytes
+        working-directory: assets
+        run: |
+          sha256sum -- * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Verify checksums (separate step)
+        working-directory: assets
+        run: sha256sum -c SHA256SUMS.txt
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: "assets/*"
+      - name: Create DRAFT release (never published automatically)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+          SIGNED: ${{ needs.version.outputs.signed }}
+        run: |
+          if [ "$SIGNED" = "true" ]; then
+            label="Windows binaries are Authenticode-signed (verify with signtool or Get-AuthenticodeSignature)."
+          else
+            label="⚠️ UNSIGNED preview: Windows binaries are NOT code-signed. Verify SHA256SUMS.txt and the build provenance before use."
+          fi
+          printf '%s\n\nSee CHANGELOG.md and docs/release/verify.md.\n' "$label" > notes.md
+          gh release create "v$VERSION" assets/* --repo "$GITHUB_REPOSITORY" --draft \
+            --title "PDF Manager $VERSION" --notes-file notes.md --target "$GITHUB_SHA"

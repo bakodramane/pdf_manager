@@ -1,7 +1,7 @@
 /// <reference types="vitest/config" />
 import { createRequire } from "node:module";
 import { createHash } from "node:crypto";
-import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
@@ -84,12 +84,42 @@ function serviceWorker(): Plugin {
   };
 }
 
+/**
+ * Record which npm packages are actually bundled into the renderer and its
+ * workers (written to build-meta/, outside dist/ so it never ships). Used by
+ * scripts/third-party-notices.mjs; package.json's dependency sections are
+ * not a reliable guide to what is shipped.
+ */
+function bundledPackages(): Plugin {
+  const found = new Set<string>();
+  return {
+    name: "pdf-manager-bundled-packages",
+    apply: "build",
+    generateBundle(_options, bundle) {
+      for (const chunk of Object.values(bundle)) {
+        if (chunk.type !== "chunk") continue;
+        for (const id of chunk.moduleIds) {
+          const m = id.replace(/\\/g, "/").match(/node_modules\/((?:@[^/]+\/)?[^/]+)\//g);
+          if (!m) continue;
+          // The innermost node_modules segment is the package that owns the file.
+          const last = m[m.length - 1].replace(/^node_modules\//, "").replace(/\/$/, "");
+          found.add(last);
+        }
+      }
+    },
+    closeBundle() {
+      mkdirSync("build-meta", { recursive: true });
+      writeFileSync("build-meta/bundled-packages.json", `${JSON.stringify([...found].sort(), null, 2)}\n`);
+    },
+  };
+}
+
 // base: './' produces relative asset paths so the same build works inside
 // Electron (app://pdf-manager/) and on any static sub-path such as
 // GitHub Pages (/pdf_manager/).
 export default defineConfig({
   base: "./",
-  plugins: [react(), cspMeta(), serviceWorker()],
+  plugins: [react(), cspMeta(), serviceWorker(), bundledPackages()],
   // App version shown in the Credits dialog (single source: package.json).
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
