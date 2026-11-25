@@ -1,0 +1,11 @@
+name: Feature request / Suggestion
+description: Suggest an improvement.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes: { label: What do you need to do? / De quoi avez-vous besoin ? }
+    validations: { required: true }
+  - type: textarea
+    id: context
+    attributes: { label: Context (who, how often, constraints such as offline use) }

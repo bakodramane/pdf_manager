@@ -7,7 +7,6 @@ import {
   type PDFImage,
   type PDFPage,
 } from "pdf-lib";
-import fontkit from "@pdf-lib/fontkit";
 import type { Annotation, FontFamily, ImageAnnotation, TextAnnotation } from "./types";
 import { AppError } from "./errors";
 import { loadUnicodeFont, styleOf, type UnicodeFontStyle } from "./fonts";
@@ -153,8 +152,11 @@ export class EmbedCache {
   unicodeFont(style: UnicodeFontStyle): Promise<PDFFont> {
     let f = this.unicodeFonts.get(style);
     if (!f) {
-      this.doc.registerFontkit(fontkit);
-      f = loadUnicodeFont(style).then((bytes) => this.doc.embedFont(bytes, { subset: false }));
+      // fontkit is large: loaded only when a Unicode font is really needed.
+      f = Promise.all([import("@pdf-lib/fontkit"), loadUnicodeFont(style)]).then(([fk, bytes]) => {
+        this.doc.registerFontkit(fk.default);
+        return this.doc.embedFont(bytes, { subset: false });
+      });
       this.unicodeFonts.set(style, f);
     }
     return f;

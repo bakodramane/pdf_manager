@@ -1,0 +1,15 @@
+# TEMPLATE — not submitted.
+PackageIdentifier: DBako.PDFManager
+PackageVersion: <VERSION>
+PackageLocale: en-US
+Publisher: D.Bako
+PublisherUrl: https://github.com/bakodramane
+PackageName: PDF Manager
+PackageUrl: https://github.com/bakodramane/pdf_manager
+License: Apache-2.0
+LicenseUrl: https://github.com/bakodramane/pdf_manager/blob/main/LICENSE
+ShortDescription: Free, open-source PDF editor that works entirely on your device (English/French).
+Tags: [pdf, ocr, editor, offline, french]
+ReleaseNotesUrl: https://github.com/bakodramane/pdf_manager/releases
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

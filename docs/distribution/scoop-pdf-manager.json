@@ -1,0 +1,15 @@
+{
+  "##": "TEMPLATE — replace version, url and hash with final release values before use.",
+  "version": "<VERSION>",
+  "description": "Free, open-source PDF editor that works entirely on your device (English/French).",
+  "homepage": "https://github.com/bakodramane/pdf_manager",
+  "license": "Apache-2.0",
+  "architecture": {
+    "64bit": {
+      "url": "<PORTABLE_EXE_URL>#/PDF-Manager.exe",
+      "hash": "<SHA256>"
+    }
+  },
+  "bin": "PDF-Manager.exe",
+  "shortcuts": [["PDF-Manager.exe", "PDF Manager"]]
+}

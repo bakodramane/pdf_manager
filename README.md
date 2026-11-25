@@ -1,16 +1,73 @@
 # PDF Manager
 
-A private, **100% client-side** PDF editor, available in **English and French**.
-Everything runs on your device — no backend, no network calls, no telemetry.
-Your files never leave your machine.
+**A free, open-source PDF editor that works entirely on your device — in
+English and French.** No account, no uploads, no tracking.
 
-Created by **[Dramane Bako](https://github.com/bakodramane)**.
+*[Lire en français](README.fr.md)*
 
-Built with Vite + React + TypeScript, [pdf-lib](https://pdf-lib.js.org/) for PDF
-manipulation, and [PDF.js](https://mozilla.github.io/pdf.js/) for rendering page
-previews. The Windows desktop app is packaged with Electron.
+Created by **[Dramane Bako](https://github.com/bakodramane)** · Apache-2.0
+licence · for students, teachers, researchers, administrations, NGOs and
+small businesses, including on slow or expensive connections.
 
-## Features
+## Get it
+
+| Edition | For | Notes |
+|---|---|---|
+| **Windows installer** (`…-Setup.exe`) | Windows 10/11 x64 | Installs for the current user only, **no administrator rights**, English or French setup |
+| **Windows portable** (`…-portable.exe`) | Windows 10/11 x64 | No installation; run from any folder |
+| **Web edition** | Any recent browser | Nothing to install; works offline after the first visit |
+
+Download only from the project's
+[GitHub Releases](https://github.com/bakodramane/pdf_manager/releases) page.
+Check your download with the published `SHA256SUMS.txt`
+([how to verify](docs/release/verify.md)).
+
+> **Current status:** version 0.2.0 is in preparation. Windows builds are
+> **not yet code-signed**; pre-release files are named `…-UNSIGNED.exe` and
+> Windows SmartScreen will warn about them. If your organisation blocks
+> unsigned software, wait for a signed release or use the web edition.
+> Signing is planned (see [signing](docs/release/signing.md)).
+
+## What it does
+
+- **Organise pages** — open, merge, split, extract, insert, delete, rotate,
+  reorder, duplicate, add blank pages, turn images into pages.
+- **Read and annotate** — zoom, select text, add text and signature images
+  (with background removal), fill in PDF forms.
+- **Recognise text (OCR)** — make scanned pages searchable and copyable in
+  English, French or both, **offline**; save the text, a searchable PDF, or
+  an approximate Word/Excel file.
+- **Compress** — lossless, balanced or strong (shrinks scans and photos).
+- **Convert** — PDF to Word (.docx) or Excel (.xlsx); pages to PNG/JPEG.
+- **Mark** — page numbers and text watermarks.
+- **Undo / redo** every change; keyboard shortcuts; light and dark themes.
+
+### Privacy in one paragraph
+
+Your documents are processed on your computer or inside your browser tab.
+They are never uploaded. The desktop app blocks all network access; the web
+edition only downloads its own files. No analytics, advertising, crash
+reports or automatic update checks. Details: [PRIVACY.md](PRIVACY.md).
+
+### Good to know (honest limitations)
+
+- **Visual signatures are not digital signatures.** Placing a signature
+  image does not cryptographically sign the PDF. A PDF that already carries
+  a digital signature loses its validity in any file PDF Manager exports
+  (you are warned).
+- **No password protection, no redaction** yet: drawing a black box over
+  text does not remove it, so PDF Manager does not offer it as "redaction".
+  Encrypted PDFs cannot be edited.
+- **OCR** works best on clean, upright, printed text; confidence is an
+  estimate, so check names, numbers and dates. Handwriting is not supported.
+- **Word/Excel conversion is approximate** (see below).
+- **Watermarks** mark a document; they do not protect it.
+- Exported PDFs are rebuilt from pages: bookmarks and accessibility tags of
+  the original are not kept.
+
+---
+
+## User guide
 
 ### Page editing
 - Open one or more PDFs (drag-and-drop or browse) and preview pages in a
@@ -28,7 +85,10 @@ previews. The Windows desktop app is packaged with Electron.
 - **Insert** pages from another PDF at a chosen position
 - **Export** the edited document, applying the current order, rotations,
   deletions, annotations, and form entries
-- **Undo / redo** every change to the document (up to 50 steps) with the ↶ ↷
+- **Duplicate** selected pages, and **Move earlier / Move later** — a
+  keyboard-friendly alternative to dragging
+- **Undo / redo** every change to the document (up to 50 steps; 25 on
+  low-memory devices) with the ↶ ↷
   buttons in the header, `Ctrl+Z` / `Ctrl+Y`, or the *Edit* menu. This covers
   adding, deleting, rotating, reordering, inserting, *Keep only selected*,
   adding, moving, resizing, and formatting annotations, filling in form
@@ -67,6 +127,10 @@ In the Document view (or from the **Annotate** panel):
   original*.
 - **Drag** any text or signature to move it; arrow keys nudge it (`Shift` for
   bigger steps) and `Delete` removes it.
+- Text in other alphabets (Polish, Czech, Vietnamese, Greek, Cyrillic…) is
+  written with an embedded Noto Sans font; characters no bundled font has
+  (for example Chinese or emoji) are listed and the export stops, instead of
+  turning into "?".
 - Annotations stay editable (and undoable) until the document is exported,
   compressed, or converted, when they are drawn into the pages. On rotated
   pages they read upright.
@@ -78,16 +142,54 @@ tick, and choose directly on the page; every entry can be undone. On export
 the values are written into the fields, which **stay fillable** in other PDF
 readers.
 
+### Recognise text (OCR)
+
+Open the **Recognise text** tab, choose the pages (all, selected or a range),
+the language (English, French, or both) and the quality (fast 200 dpi,
+standard 300 dpi, high 400 dpi), then **Recognise text**. Pages that already
+contain text are skipped unless you tick the option (which may duplicate
+text). You can cancel at any time.
+
+Results per page show a confidence value; low values are flagged. You can:
+- correct the text, **copy** it or **save it as .txt** (UTF-8);
+- **save a searchable PDF** — pages look exactly the same, with invisible
+  text you can select and search;
+- create **Word** or **Excel** files from the recognised text (approximate).
+
+The desktop app includes the English and French models, so OCR works on a
+computer that has never been online. In the web edition the engine (≈ 4 MB)
+and each language pack (0.7–2.9 MB) are downloaded from the site the first
+time; use **Offline use → Make available offline** to keep them.
+
 ### Compress
-- Re-packs the PDF structure using object streams
+
+| Level | What it does |
+|---|---|
+| Lossless | Tidies the file structure and merges duplicate images; pages are unchanged |
+| Balanced (150 dpi) | Also shrinks large images (JPEG); good for screen and ordinary printing |
+| Strong (100 dpi) | Smallest files for e-mail or slow connections; images lose detail |
+
+Text, drawings, forms and links are kept. If a level cannot make the file
+smaller, the document is left unchanged. The result replaces the open
+document (Undo brings it back); use **Export** to save it.
 
 ### Convert
-- **PDF → Word (.docx)**: one Word page per PDF page (same size, orientation,
+
+- **PDF → Word (.docx)**: one Word page per PDF page (same size, orientation
   and margins), with paragraphs, headings, fonts, bold/italic, alignment,
-  indentation, spacing, tables (incl. merged cells and shading), and images
-- **PDF → Excel (.xlsx)**: one sheet per page; tables become real cell grids
-  with merged cells, borders, and shading, and numbers (`1,234.50`, `(15)`,
-  `12%`, `$9.99`, `1 234,56`) are stored as numbers with a matching format
+  tables (merged cells, shading) and images.
+- **PDF → Excel (.xlsx)**: one sheet per page; tables become cell grids and
+  numbers (`1,234.50`, `(15)`, `12%`, `1 234,56`) are stored as numbers.
+  Text from the PDF is never written as a spreadsheet formula.
+- Scanned pages: run OCR first, then use *Word (from OCR)* / *Excel (from OCR)*.
+
+### Page tools
+
+Insert blank A4/Letter pages; add JPG/PNG/WebP/GIF/BMP images as pages
+(camera details such as location are not copied); add page numbers
+(`{n}` and `{total}` in the text); add a semi-transparent text watermark;
+save pages as PNG or JPEG (several pages are zipped). Numbers and
+watermarks read upright on rotated pages and can be undone.
 
 ### Keyboard shortcuts
 
@@ -116,13 +218,6 @@ are off so they never change pages you cannot see; `Delete`, arrow keys, and
 `Enter` (edit text) act on the selected annotation instead, and `Esc`
 deselects it.
 
-### Credits
-
-The **Credits** item at the bottom of the left menu (and *Help → Credits* in
-the desktop app) opens a box with the app version, the author (**Dramane
-Bako**, with a link to [github.com/bakodramane](https://github.com/bakodramane)),
-the libraries used, and the licence.
-
 ### Desktop window menu
 
 The desktop app has its own menu bar, in English or French to match the app
@@ -144,250 +239,81 @@ The desktop app has its own menu bar, in English or French to match the app
 - Switch at any time with the **EN | FR** toggle in the top-right corner; the
   choice is remembered.
 
----
+### Web edition offline
 
-## Building the app from source
+After the first visit the web edition opens without a connection. The
+**Offline use** button at the bottom shows what is available offline, lets
+you download OCR language packs, and **Remove offline data** deletes
+everything the site stored (your own files are never stored). When a new
+version is ready, a message lets you reload when convenient.
 
-### 1. Prerequisites
+### Accessibility
 
-| Tool | Version | Check with |
-|------|---------|------------|
-| [Node.js](https://nodejs.org/) (includes npm) | 20 LTS or 22 LTS | `node -v` and `npm -v` |
-| [Git](https://git-scm.com/) | any recent version | `git --version` |
-| Windows | 10 or 11 (x64), to build the Windows `.exe` files | — |
-
-Building the Windows installers on Linux or macOS also works, but requires
-[Wine](https://www.winehq.org/); building on Windows is the simplest route.
-
-### 2. Get the code and install dependencies
-
-```bash
-git clone https://github.com/bakodramane/pdf_manager.git
-cd pdf_manager
-npm ci
-```
-
-`npm ci` installs the exact versions pinned in `package-lock.json` (including
-the Electron binary, about 100 MB, downloaded once). Use `npm install` instead
-if you intend to change dependencies.
-
-> **Windows PowerShell tip:** if PowerShell refuses to run `npm` with a
-> "running scripts is disabled" error, use `npm.cmd` in place of `npm`
-> (for example `npm.cmd ci`), or run the commands from *Command Prompt*.
-
-### 3. Check that everything works (optional but recommended)
-
-```bash
-npm run typecheck
-npm run lint
-npm test
-```
-
-### 4. Try the app before packaging it
-
-```bash
-npm run dev            # in the browser: open the printed http://localhost:5173 URL
-npm run electron:dev   # as a desktop window (Vite dev server + Electron)
-```
-
-Stop either with `Ctrl+C`.
-
-### 5. Build the Windows desktop app
-
-```bash
-npm run dist             # builds the installer and the portable .exe in one pass
-npm run dist:installer   # bilingual (EN/FR) NSIS installer only
-npm run dist:portable    # portable .exe only
-```
-
-Each command first runs `npm run build` (type-check + production web build
-into `dist/`), then packages it with
-[electron-builder](https://www.electron.build/). The results land in
-`release/`:
-
-| File | Type | Size (approx.) |
-|------|------|----------------|
-| `release/PDF Manager-0.1.0-Setup.exe`    | Per-user installer (English/French) | ~82 MB |
-| `release/PDF Manager-0.1.0-portable.exe` | Portable single file, no installation | ~82 MB |
-
-The version number in the file names comes from `"version"` in `package.json`.
-
-### 6. Install and run
-
-- **Installer:** double-click `PDF Manager-<version>-Setup.exe`, pick
-  *English* or *Français* in the first dialog, and follow the wizard. It
-  installs into `%LOCALAPPDATA%\Programs\PDF Manager` without administrator
-  rights, and creates Start Menu and Desktop shortcuts.
-- **Portable:** copy `PDF Manager-<version>-portable.exe` anywhere (even a USB
-  drive) and double-click it.
-
-The executables are unsigned, so Windows SmartScreen shows *"Windows protected
-your PC"* on first run: click **More info**, then **Run anyway** (see below).
-
-### 7. Publish a release (optional)
-
-`release/` is **git-ignored**: the installers are around 80–100 MB and the
-unpacked Electron binary is over 200 MB, above GitHub's 100 MB per-file limit.
-Attach the `.exe` files to a
-[GitHub Release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
-instead (assets can be up to 2 GB):
-
-```bash
-gh release create v0.1.0 "release/PDF Manager-0.1.0-Setup.exe" "release/PDF Manager-0.1.0-portable.exe"
-```
-
-### Building the web version only
-
-```bash
-npm run build      # outputs static files to dist/
-npm run preview    # serves dist/ locally to check the production build
-```
-
-`dist/` is fully static — open it from any local static file server. It makes
-no network requests at runtime.
-
-### Troubleshooting the build
-
-| Problem | Fix |
-|---------|-----|
-| `npm ci` fails while downloading Electron (proxy/firewall) | Set a mirror, e.g. `set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/` (Command Prompt), then rerun `npm ci` |
-| `EPERM` / "file is locked" during `npm run dist` | Close any running PDF Manager window and antivirus scans of `release/`, delete `release/`, and rerun |
-| `npm run dist` on Linux/macOS fails on `wine` | Install Wine, or build on Windows |
-| Out-of-date or broken `node_modules` | Delete `node_modules/` and rerun `npm ci` |
-
-### All npm commands
-
-| Command | What it does |
-|---------|--------------|
-| `npm run dev` | Start the Vite dev server (browser) |
-| `npm run electron:dev` | Start Vite + Electron side by side |
-| `npm run build` | Type-check and produce a production web build in `dist/` |
-| `npm run preview` | Serve the production build locally |
-| `npm run dist` | Build the Windows installer + portable `.exe` into `release/` |
-| `npm run dist:installer` | Build the Windows installer only |
-| `npm run dist:portable` | Build the portable `.exe` only |
-| `npm run lint` | Run ESLint (zero warnings allowed) |
-| `npm run typecheck` | Type-check without emitting |
-| `npm test` | Run the unit test suite (Vitest) |
-| `npm run test:watch` | Run tests in watch mode |
+Controls have text labels, forms have labels, the language of the page is
+set for screen readers, progress and errors are announced, and page order
+can be changed without dragging (*Move earlier / later*). A full WCAG 2.2
+audit with screen readers has not been done yet; please report barriers.
 
 ---
 
-## Desktop app details
+## For developers
 
-Both Windows artifacts run **without administrator rights** and make **zero
-network calls** at runtime. The build keeps only the en-US and fr Chromium
-locale packs, strips source maps, and uses maximum compression to keep the
-artifacts small.
+### Prerequisites
 
-### Portable .exe
+| Tool | Version |
+|---|---|
+| Node.js | 24 LTS (`.nvmrc`; ≥ 22.13 works) |
+| npm | 10 or later |
+| Windows 10/11 x64 | to build the Windows `.exe` files |
 
-- **No installation needed.** Copy it to any folder or USB drive and double-click.
-- Writes user data (window state, etc.) next to itself or to a temp profile.
-- Requires no admin rights, triggers no UAC prompt.
+### Commands
 
-### Per-user NSIS installer
+```bash
+npm ci                 # exact versions from package-lock.json
+npm run dev            # browser, http://localhost:5173
+npm run electron:dev   # desktop window
+npm run lint && npm run typecheck && npm test
+npm run build          # dist/ + THIRD-PARTY-NOTICES + build-meta/ (SBOM)
+npm run test:e2e       # Playwright: Electron + web (run `npx playwright install chromium` once)
+npm run bench:ocr      # OCR accuracy/speed report → docs/benchmarks/
+npm run dist           # Windows portable + NSIS installer (unsigned unless configured)
+```
 
-- Bilingual wizard (English / French).
-- Publisher **D.Bako**, shown in *Apps & features*, as *Company* in the
-  `.exe` properties, and as the Start Menu folder name. It comes from
-  `"author": { "name": "D.Bako" }` in `package.json`; the copyright line
-  (*Copyright © 2026 Dramane Bako*) is set in `electron-builder.yml`.
-- Installs into **`%LOCALAPPDATA%\Programs\PDF Manager`** (no admin, no UAC).
-- Creates Start Menu and Desktop shortcuts.
-- Provides a standard uninstaller under *Apps & features* (user scope).
+`npm run assets` copies PDF.js, OCR and font files from `node_modules` into
+`public/` and checks their SHA-256 digests against
+`scripts/asset-digests.json` (it runs automatically before dev/build/test).
 
-### SmartScreen warning (expected)
+On Linux, E2E tests need Xvfb (`xvfb-run -a npm run test:e2e`); some tests use
+Poppler's `pdftotext`/`pdfinfo` as independent checkers when installed.
 
-The executables are **unsigned** (no code-signing certificate). Windows SmartScreen
-will show a blue *"Windows protected your PC"* dialog on first run. This is expected
-for private unsigned builds. To proceed:
-
-1. Click **More info**.
-2. Click **Run anyway**.
-
-SmartScreen does not block the app permanently; it only asks once per executable.
-
-### Renderer security model
-
-| Setting | Value |
-|---------|-------|
-| `nodeIntegration` | `false` |
-| `contextIsolation` | `true` |
-| `sandbox` | `true` |
-| External navigation | blocked (`will-navigate`) |
-| New windows | denied; `https://` links (the author credit) open in the default browser |
-| Preload bridge | exposes one function, `window.pdfManager.setLanguage(lang)`, so the menu can follow the UI language; the main process only accepts `en`/`fr` from its own window |
-
-The renderer has no access to Node.js APIs. Menu commands reach the page as a
-`pdfmanager:menu` DOM event dispatched by the main process (with a user
-gesture, so *File → Open…* may open the file picker); only a fixed list of
-command names is ever sent. Menu shortcuts are shown but not registered, so
-each key press is handled once, by the page. File exports use the in-browser
-Blob download — no native save dialog.
-
-## Architecture
-
-PDF logic is kept strictly separate from UI:
+### Architecture
 
 ```
 src/
-  pdf/                 # PDF logic — no React
-    types.ts           # PdfSource / PageRef / annotation / form data model
-    loader.ts          # file validation + loading
-    operations.ts      # pure page-list ops (delete/rotate/reorder/extract/split/insert)
-    assemble.ts        # rebuild + download output PDF (pdf-lib)
-    render.ts          # page rendering via PDF.js (web worker)
-    pageInfo.ts        # page boxes + fillable form widgets (PDF.js)
-    annotations.ts     # annotation geometry + drawing into pages (tested)
-    forms.ts           # form filling + keeping fields fillable (tested)
-    background.ts      # signature background removal (tested)
-    compress.ts        # object-stream re-packing
-    extract.ts         # PDF.js page → text chunks, ruling lines, fills, images
-    layout.ts          # layout analysis: lines, paragraphs, tables (pure, tested)
-    convert.ts         # layout → docx / xlsx writers (lazy-loaded)
-    errors.ts          # coded errors, translated by the UI
-    *.test.ts          # unit tests
-  i18n/
-    en.ts / fr.ts      # UI strings (same keys, checked by a test)
-    index.ts           # language detection, translate(), useI18n()
-    I18nProvider.tsx   # React provider + language persistence
-  hooks/
-    useEditor.ts       # central editor state + actions, with undo/redo
-    history.ts         # pure undo/redo history (tested)
-    shortcuts.ts       # key → action mapping (tested)
-    useShortcuts.ts    # window keyboard listener
-  components/          # React components + inline SVG icons
-    Viewer.tsx         # document view: zoom, text layer, annotations, forms
-  desktop.ts           # bridge to the Electron menu (no-op in the browser)
-  App.tsx              # layout, tool panels, async/error orchestration
+  pdf/            PDF logic, no React (pdf-lib, PDF.js)
+    ocr/          OCR engine wrapper, rasteriser, text-layer writer, metrics
+    compress*.ts  structural + image compression
+    pageTools.ts  blank pages, images→PDF, page numbers, watermark
+    limits.ts     resource budgets · inspect.ts PDF findings · filenames.ts
+  components/     React UI (OcrPanel, ToolsPanel, OfflinePanel, Viewer…)
+  hooks/          editor state with undo/redo, shortcuts
+  i18n/           en.ts / fr.ts (key parity tested)
+  pwa.ts          web edition service-worker client
 electron/
-  main.cjs             # window, security hardening, installer language
-  menu.cjs             # bilingual window menu template
-  preload.cjs          # exposes setLanguage() to the page, nothing else
-build/
-  installer.nsh        # NSIS hook: saves the installer language for the app
-  icon.ico / icon.png  # app, shortcut, and installer icon
-public/
-  icon.png             # window icon, favicon, and in-app logo
+  main.cjs        window, app:// protocol, session hardening
+  security.cjs    pure, unit-tested security policy (URLs, CSP, IPC)
+  preload.cjs     exposes setLanguage("en"|"fr") only
+scripts/          asset copy + digests, notices/SBOM, service-worker template
+e2e/              Playwright tests (Electron and web)
+docs/             readiness record, security, ADRs, release and distribution guides
 ```
 
-The editor models a document as an ordered list of **page references**, each
-pointing back to a loaded source PDF. Reorder/delete/insert/merge are simple
-immutable array operations; the output is rebuilt with pdf-lib only on export.
-Annotations live on their page reference (so they follow the page when it is
-moved or rotated) and form values are kept per source file; both are part of
-the undo history and are written into the PDF only when it is assembled.
+Security model and decisions: [threat model](docs/security/threat-model.md),
+[ADRs](docs/adr/README.md). Release process:
+[checklist](docs/release/checklist.md). Current evidence and gate status:
+[distribution readiness](docs/distribution-readiness.md).
 
-## Robustness
-
-- Validates file type, non-empty files, and a 200 MB size ceiling
-- Detects corrupted and password-protected PDFs with clear messages
-- Guards against empty selections and empty-document export
-- Every async operation shows a loading overlay and surfaces errors as a toast
-- PDF parsing/rendering runs in a **web worker** to keep the UI responsive
-
-## Known limitations
+### Conversion details and limits
 
 ### Conversion is NOT lossless
 PDF has no notion of paragraphs or tables, so conversion reconstructs them from
@@ -402,39 +328,17 @@ the page layout:
   their family name (Word substitutes any font that isn't installed).
 - **Not reproduced:** text colour, vector drawings and charts, diagonal or
   vertical text, headers/footers as Word header/footer parts.
-- **No OCR.** Scanned pages come through as images in Word and as empty
-  sheets in Excel.
+- **Scanned pages** need OCR first (see above); otherwise they come
+  through as images in Word and as empty sheets in Excel.
 
-### Compression
-pdf-lib cannot re-encode embedded images. Compression re-packs the document
-structure (object streams), which helps PDFs produced by office software but may
-yield little on image-heavy files. The reported percentage reflects the actual
-before/after size.
+## Contributing, support, security
 
-### Annotation and forms
-- Text annotations use the PDF standard fonts (Helvetica, Times, Courier),
-  which cover Western European characters; other characters are replaced
-  with "?" in the exported file.
-- PDF readers draw form fields above the page, so a signature placed over a
-  field's box can be partly hidden by that box in the exported file.
-- Signature fields (digital signatures), push buttons, and form scripts
-  (calculations, validation) are not supported. Field values are written with
-  Helvetica; readers that rebuild appearances may show another font.
+[CONTRIBUTING.md](CONTRIBUTING.md) · [SUPPORT.md](SUPPORT.md) ·
+[SECURITY.md](SECURITY.md) · [CHANGELOG.md](CHANGELOG.md)
 
-## Future improvements
+## Author and licence
 
-- Free rotation of annotations, and drawing (ink) and highlight tools
-- Real image down-sampling for stronger compression
-- Optional OCR (e.g. tesseract.js) for scanned-PDF conversion
-- Text colour and header/footer detection in Word conversion
-- Per-page (not just whole-document) convert/compress
-
-## Author
-
-PDF Manager is created and maintained by
-**[Dramane Bako](https://github.com/bakodramane)**.
-
-## Privacy
-
-No analytics, no network requests, no storage beyond your browser tab. Closing
-the tab discards everything. This is by design.
+Created and maintained by **[Dramane Bako](https://github.com/bakodramane)**.
+Licensed under the [Apache License 2.0](LICENSE). Third-party components and
+their licences are listed in `THIRD-PARTY-NOTICES.txt` shipped with every
+build.

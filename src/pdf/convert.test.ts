@@ -148,3 +148,25 @@ describe("PDF conversion (end to end)", () => {
     expect(ws.getCell(northRow, 1).border?.top?.style).toBe("thin");
   });
 });
+
+describe("Excel export safety", () => {
+  it("writes formula-like PDF text as literal strings, never as formulas", async () => {
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const page = doc.addPage([595, 842]);
+    const hostile = ["=HYPERLINK(\"http://example.com\",\"x\")", "+SUM(1,2)", "-2+3", "@cmd", "=1+1"];
+    hostile.forEach((t, i) => page.drawText(t, { x: 72, y: 760 - i * 20, size: 11, font }));
+    const pdf = await open(await doc.save());
+    const bytes = await pdfToXlsx(pdf);
+    // No <f> (formula) element anywhere in the workbook XML.
+    const zip = await JSZip.loadAsync(bytes);
+    const sheetXml = await zip.file("xl/worksheets/sheet1.xml")!.async("string");
+    expect(sheetXml).not.toMatch(/<f[ >]/);
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(bytes.buffer as ArrayBuffer);
+    const cells: unknown[] = [];
+    wb.getWorksheet("Page 1")!.eachRow((row) => row.eachCell((c) => cells.push(c.value)));
+    for (const v of cells) expect(typeof v === "object" && v !== null && "formula" in v).toBe(false);
+    expect(cells.map(String).join(" ")).toContain("=HYPERLINK");
+  });
+});

@@ -1,9 +1,9 @@
 {
   "name": "pdf-manager",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0-beta.1",
   "type": "module",
-  "description": "Private, local-only PDF editor by Dramane Bako",
+  "description": "Private, local-first PDF editor with offline OCR (English/French) by Dramane Bako",
   "author": {
     "name": "D.Bako",
     "url": "https://github.com/bakodramane"
