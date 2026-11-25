@@ -14,7 +14,8 @@ directories:
 # Files included in the packaged app.
 files:
   - dist/**/*          # built web assets (Vite output)
-  - electron/**/*      # main + preload scripts
+  - electron/**/*.cjs  # main, preload, menu and security policy scripts
+  - "!electron/**/*.test.*"  # never ship tests
   - "!**/*.map"        # never ship source maps
 
 # Size: Chromium ships ~55 UI locale packs (~45 MB unpacked). The app's UI is
@@ -34,9 +35,22 @@ compression: maximum
 # a second download and the EPERM rename issue on Windows.
 electronDist: node_modules/electron/dist
 
-asar: true             # pack source into an asar archive (faster startup)
+asar: true             # pack source into an asar archive (packaging, not a security boundary)
 asarUnpack:            # unpack assets PDF.js needs to read at runtime
   - "dist/pdfjs/**"
+
+# Electron fuses, flipped in the binary before signing. They switch off
+# ways of turning the shipped executable into a generic Node.js runtime or
+# debugging target, and make Electron refuse a tampered app.asar.
+electronFuses:
+  runAsNode: false                             # ignore ELECTRON_RUN_AS_NODE
+  enableNodeOptionsEnvironmentVariable: false  # ignore NODE_OPTIONS
+  enableNodeCliInspectArguments: false         # ignore --inspect / --inspect-brk
+  enableEmbeddedAsarIntegrityValidation: true  # verify app.asar hash (Windows, Electron >= 30)
+  onlyLoadAppFromAsar: true                    # never load an unpacked app folder
+  enableCookieEncryption: true                 # OS-encrypted cookie store (none are used)
+  grantFileProtocolExtraPrivileges: false      # app is served from app://, not file://
+  loadBrowserProcessSpecificV8Snapshot: false
 
 win:
   icon: build/icon.ico               # app, shortcut, and installer icon
