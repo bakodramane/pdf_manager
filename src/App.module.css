@@ -990,6 +990,14 @@
   color: var(--danger);
 }
 
+.toastWarning {
+  border-left: 4px solid var(--warn);
+}
+
+.toastWarning > svg {
+  color: var(--warn);
+}
+
 .toastSuccess {
   border-left: 4px solid var(--ok);
 }

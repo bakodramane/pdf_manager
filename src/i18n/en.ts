@@ -225,6 +225,15 @@ export const en = {
   "notice.split": "Downloaded {count} parts",
   "notice.dismiss": "Dismiss",
 
+  // Warnings about what a loaded PDF contains
+  "warning.file": "“{name}”:",
+  "warning.signed":
+    "It is digitally signed. Any file exported by PDF Manager is a new file in which that signature is no longer valid.",
+  "warning.scripts":
+    "It contains scripts or actions. PDF Manager never runs them, but exported pages may still carry them.",
+  "warning.attachments": "It contains attached files. PDF Manager does not open them.",
+  "warning.xfa": "It uses an XFA form, which PDF Manager cannot display or fill.",
+
   // Errors
   "error.splitPoints":
     "Provide at least one valid split point (e.g. 3, 7) inside the page range.",
@@ -239,7 +248,14 @@ export const en = {
   "error.tooLarge": "“{name}” is too large (max {max} MB).",
   "error.invalid": "“{name}” does not look like a valid PDF.",
   "error.encrypted":
-    "“{name}” is password-protected. Remove the password and try again.",
+    "“{name}” is encrypted (password-protected). Editing encrypted PDFs is not supported: open it in the software that created it, save an unprotected copy if you are allowed to, and try again.",
+  "error.totalTooLarge":
+    "Opening “{name}” would use more than {max} MB of memory for documents. Close the current document (or some files) and try again.",
+  "error.tooManyPages":
+    "Opening “{name}” would bring the total above {max} pages. Close the current document and try again.",
+  "error.tooManyFiles": "Too many files at once (maximum {max}). Add them in smaller groups.",
+  "error.imageTooLarge":
+    "This image is too large (maximum {max} megapixels). Use a smaller image.",
   "error.corrupted": "“{name}” could not be read — it may be corrupted.",
   "error.noPages": "“{name}” has no pages.",
   "error.nothingToExport": "Nothing to export — the document has no pages.",

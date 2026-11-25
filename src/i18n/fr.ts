@@ -223,6 +223,15 @@ export const fr: Messages = {
   "notice.split": "{count} parties téléchargées",
   "notice.dismiss": "Fermer",
 
+  // Avertissements sur le contenu d'un PDF chargé
+  "warning.file": "« {name} » :",
+  "warning.signed":
+    "Il porte une signature numérique. Tout fichier exporté par PDF Manager est un nouveau fichier dans lequel cette signature n'est plus valide.",
+  "warning.scripts":
+    "Il contient des scripts ou des actions. PDF Manager ne les exécute jamais, mais les pages exportées peuvent encore les contenir.",
+  "warning.attachments": "Il contient des fichiers joints. PDF Manager ne les ouvre pas.",
+  "warning.xfa": "Il utilise un formulaire XFA, que PDF Manager ne peut ni afficher ni remplir.",
+
   // Erreurs
   "error.splitPoints":
     "Indiquez au moins un point de découpe valide (ex. 3, 7) dans la plage de pages.",
@@ -237,7 +246,14 @@ export const fr: Messages = {
   "error.tooLarge": "« {name} » est trop volumineux (maximum {max} Mo).",
   "error.invalid": "« {name} » ne semble pas être un PDF valide.",
   "error.encrypted":
-    "« {name} » est protégé par un mot de passe. Retirez le mot de passe et réessayez.",
+    "« {name} » est chiffré (protégé par un mot de passe). La modification des PDF chiffrés n'est pas prise en charge : ouvrez-le dans le logiciel qui l'a créé, enregistrez une copie non protégée si vous en avez le droit, puis réessayez.",
+  "error.totalTooLarge":
+    "Ouvrir « {name} » utiliserait plus de {max} Mo de mémoire pour les documents. Fermez le document en cours (ou certains fichiers) et réessayez.",
+  "error.tooManyPages":
+    "Ouvrir « {name} » porterait le total à plus de {max} pages. Fermez le document en cours et réessayez.",
+  "error.tooManyFiles": "Trop de fichiers à la fois (maximum {max}). Ajoutez-les par petits groupes.",
+  "error.imageTooLarge":
+    "Cette image est trop grande (maximum {max} mégapixels). Utilisez une image plus petite.",
   "error.corrupted": "« {name} » est illisible : il est peut-être endommagé.",
   "error.noPages": "« {name} » ne contient aucune page.",
   "error.nothingToExport": "Rien à exporter : le document ne contient aucune page.",

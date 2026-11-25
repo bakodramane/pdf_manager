@@ -23,6 +23,8 @@ import { compressPdf } from "./pdf/compress";
 import { dropRenderDoc, getRenderDoc } from "./pdf/render";
 import { pdfToDocx, pdfToXlsx } from "./pdf/convert";
 import { AppError } from "./pdf/errors";
+import { hasFindings } from "./pdf/inspect";
+import type { PdfSource } from "./pdf/types";
 import { LANGUAGES, useI18n, type Lang, type MessageKey } from "./i18n";
 import { AUTHOR } from "./about";
 import { onDesktopMenuCommand, setDesktopLanguage, type MenuCommand } from "./desktop";
@@ -39,7 +41,7 @@ const TABS: { id: Tab; label: MessageKey; icon: IconName }[] = [
 ];
 
 type View = "grid" | "document";
-type Notice = { kind: "error" | "success"; text: string };
+type Notice = { kind: "error" | "success" | "warning"; text: string };
 
 /** App icon (public/icon.png), also used as the window and installer icon. */
 const LOGO_URL = `${import.meta.env.BASE_URL}icon.png`;
@@ -88,6 +90,29 @@ export default function App() {
     (text: string) => setNotice({ kind: "success", text }),
     [],
   );
+  const showWarning = useCallback(
+    (text: string) => setNotice({ kind: "warning", text }),
+    [],
+  );
+
+  /** Warnings about what loaded files contain (signatures, scripts, …). */
+  const findingsText = useCallback(
+    (sources: PdfSource[]): string => {
+      const lines: string[] = [];
+      for (const src of sources) {
+        const f = src.findings;
+        if (!f || !hasFindings(f)) continue;
+        const parts: string[] = [];
+        if (f.signed) parts.push(t("warning.signed"));
+        if (f.javascript || f.externalActions) parts.push(t("warning.scripts"));
+        if (f.attachments) parts.push(t("warning.attachments"));
+        if (f.xfa) parts.push(t("warning.xfa"));
+        lines.push(`${t("warning.file", { name: src.name })} ${parts.join(" ")}`);
+      }
+      return lines.join("\n");
+    },
+    [t],
+  );
 
   // Success notices fade on their own; errors stay until dismissed.
   useEffect(() => {
@@ -115,10 +140,15 @@ export default function App() {
   const addFiles = useCallback(
     (files: File[]) =>
       run(t("busy.loading"), async () => {
-        const errs = await editor.addFiles(files);
-        if (errs.length) showError(errs.map(formatError).join("\n"));
+        const { errors, loaded } = await editor.addFiles(files);
+        if (errors.length) {
+          showError(errors.map(formatError).join("\n"));
+          return;
+        }
+        const warning = findingsText(loaded);
+        if (warning) showWarning(warning);
       }),
-    [editor, run, t, showError, formatError],
+    [editor, run, t, showError, showWarning, formatError, findingsText],
   );
 
   /** Assemble current working order into bytes (shared by export/convert). */
@@ -440,11 +470,15 @@ export default function App() {
         <div
           className={[
             styles.toast,
-            notice.kind === "error" ? styles.toastError : styles.toastSuccess,
+            notice.kind === "error"
+              ? styles.toastError
+              : notice.kind === "warning"
+                ? styles.toastWarning
+                : styles.toastSuccess,
           ].join(" ")}
-          role={notice.kind === "error" ? "alert" : "status"}
+          role={notice.kind === "success" ? "status" : "alert"}
         >
-          <Icon name={notice.kind === "error" ? "alert" : "check"} size={18} />
+          <Icon name={notice.kind === "success" ? "check" : "alert"} size={18} />
           <div className={styles.toastText}>{notice.text}</div>
           <button
             className="icon"
@@ -915,8 +949,8 @@ function InsertSection({ editor, run }: { editor: EditorApi; run: RunFn }) {
         icon="plus"
         onFiles={(files) =>
           run(t("busy.inserting"), async () => {
-            const err = await editor.insertFromFile(files[0], after - 1);
-            if (err) throw err;
+            const { error } = await editor.insertFromFile(files[0], after - 1);
+            if (error) throw error;
           })
         }
       />
