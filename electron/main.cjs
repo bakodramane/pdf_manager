@@ -140,15 +140,17 @@ function registerAppProtocol(ses) {
     const filePath = sec.resolveAppAsset(DIST_DIR, request.url);
     if (!filePath) return new Response(null, { status: 404 });
     try {
-      // Refuse symlinks pointing outside dist/ (none are shipped).
+      // Resolve symlinks first and read only that resolved path, which must
+      // lie inside dist/ (none are shipped). No separate existence/type
+      // check before reading: a directory or missing file simply fails the
+      // read. (fs.open is avoided on purpose: inside app.asar Electron would
+      // extract the file to a temporary folder.)
       const real = await fs.promises.realpath(filePath).catch(() => filePath);
       if (real !== filePath && !sec.isInside(realRoot, real)) {
         return new Response(null, { status: 404 });
       }
-      const stat = await fs.promises.stat(filePath);
-      if (!stat.isFile()) return new Response(null, { status: 404 });
-      const body = await fs.promises.readFile(filePath);
-      return new Response(body, { status: 200, headers: sec.responseHeaders(filePath) });
+      const body = await fs.promises.readFile(real);
+      return new Response(body, { status: 200, headers: sec.responseHeaders(real) });
     } catch {
       return new Response(null, { status: 404 });
     }

@@ -68,7 +68,21 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
+/** The only files "Make available offline" may fetch (never a URL from a message). */
+const OCR_FILES = new Map(
+  [
+    "ocr/worker.min.js",
+    "ocr/core/tesseract-core-lstm.wasm.js",
+    "ocr/core/tesseract-core-simd-lstm.wasm.js",
+    "ocr/core/tesseract-core-relaxedsimd-lstm.wasm.js",
+    "ocr/lang/eng.traineddata.gz",
+    "ocr/lang/fra.traineddata.gz",
+  ].map((f) => [f, new URL(f, scope).href]),
+);
+
 self.addEventListener("message", (event) => {
+  // Only pages of this site may control the worker.
+  if (event.origin !== scope.origin) return;
   const msg = event.data || {};
   const port = event.ports && event.ports[0];
   const reply = (data) => port && port.postMessage(data);
@@ -91,8 +105,8 @@ self.addEventListener("message", (event) => {
         let done = 0;
         try {
           for (const file of msg.files) {
-            if (typeof file !== "string" || !file.startsWith("ocr/") || file.includes("..")) continue;
-            const url = new URL(file, scope).href;
+            const url = OCR_FILES.get(file);
+            if (!url) continue;
             if (!(await ocr.match(url))) {
               const res = await fetch(url, { cache: "no-store" });
               if (!res.ok) throw new Error(`HTTP ${res.status}`);

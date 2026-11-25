@@ -19,9 +19,9 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dist:portable": "npm run build && electron-builder --win portable",
-    "dist:installer": "npm run build && electron-builder --win nsis",
-    "dist": "npm run build && electron-builder --win portable nsis",
+    "dist:portable": "npm run build && npm run electron:install && electron-builder --win portable",
+    "dist:installer": "npm run build && npm run electron:install && electron-builder --win nsis",
+    "dist": "npm run build && npm run electron:install && electron-builder --win portable nsis",
     "assets": "node scripts/copy-assets.mjs",
     "predev": "npm run assets",
     "prebuild": "npm run assets",
@@ -29,7 +29,8 @@
     "test:e2e": "playwright test --trace off",
     "test:e2e:electron": "playwright test --project=electron --trace off",
     "test:e2e:web": "playwright test --project=web --trace off",
-    "bench:ocr": "OCR_BENCHMARK_OUT=docs/benchmarks/ocr-latest.json vitest run src/pdf/ocr/ocr.integration.test.ts"
+    "bench:ocr": "OCR_BENCHMARK_OUT=docs/benchmarks/ocr-latest.json vitest run src/pdf/ocr/ocr.integration.test.ts",
+    "electron:install": "node node_modules/electron/install.js"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

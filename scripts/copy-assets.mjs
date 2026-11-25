@@ -9,7 +9,7 @@
 //   npm run assets -- --update-digests
 // and review the diff of asset-digests.json in the pull request.
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -49,8 +49,18 @@ const FILES = [
   ["@expo-google-fonts/noto-sans/LICENSE_FONT", "fonts/OFL.txt"],
 ];
 
-function sha256(file) {
-  return createHash("sha256").update(readFileSync(file)).digest("hex");
+function sha256(bytes) {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+/** Read a file once; a missing file stops the build with a hint. */
+function readSource(src) {
+  try {
+    return readFileSync(src);
+  } catch (err) {
+    if (err && err.code === "ENOENT") fail(`missing ${src} — run npm ci first.`);
+    throw err;
+  }
 }
 
 function fail(message) {
@@ -61,20 +71,30 @@ function fail(message) {
 for (const [from, to] of FOLDERS) {
   const src = join(nm, from);
   const dest = join(pub, to);
-  if (!existsSync(src)) fail(`missing ${src} — run npm ci first.`);
   rmSync(dest, { recursive: true, force: true });
   mkdirSync(dirname(dest), { recursive: true });
-  cpSync(src, dest, { recursive: true });
+  try {
+    cpSync(src, dest, { recursive: true });
+  } catch (err) {
+    if (err && err.code === "ENOENT") fail(`missing ${src} — run npm ci first.`);
+    throw err;
+  }
 }
 
-const expected = existsSync(digestFile) ? JSON.parse(readFileSync(digestFile, "utf8")) : {};
+let expected = {};
+try {
+  expected = JSON.parse(readFileSync(digestFile, "utf8"));
+} catch (err) {
+  if (!err || err.code !== "ENOENT") throw err;
+}
 const actual = {};
 rmSync(join(pub, "ocr"), { recursive: true, force: true });
 rmSync(join(pub, "fonts"), { recursive: true, force: true });
 for (const [from, to] of FILES) {
   const src = join(nm, from);
-  if (!existsSync(src)) fail(`missing ${src} — run npm ci first.`);
-  const digest = sha256(src);
+  // Hash and write the very bytes that were read (no check-then-copy).
+  const bytes = readSource(src);
+  const digest = sha256(bytes);
   actual[to] = digest;
   if (!updateDigests) {
     if (!expected[to]) fail(`no committed digest for ${to}. Run: npm run assets -- --update-digests`);
@@ -84,7 +104,7 @@ for (const [from, to] of FILES) {
   }
   const dest = join(pub, to);
   mkdirSync(dirname(dest), { recursive: true });
-  cpSync(src, dest);
+  writeFileSync(dest, bytes);
 }
 
 if (updateDigests) {

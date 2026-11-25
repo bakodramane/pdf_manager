@@ -4,7 +4,7 @@
 // It binds to 127.0.0.1 only and serves files from dist/ (no directory
 // listing, no traversal outside dist/).
 import { createServer } from "node:http";
-import { readFile, stat } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { extname, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -38,13 +38,14 @@ createServer(async (req, res) => {
       res.writeHead(404).end();
       return;
     }
-    const s = await stat(file);
-    if (!s.isFile()) throw new Error("not a file");
+    // Read directly (a directory or missing file throws → 404); no separate
+    // stat-then-read.
+    const body = await readFile(file);
     res.writeHead(200, {
       "Content-Type": types[extname(file)] || "application/octet-stream",
       "Cache-Control": "no-cache",
     });
-    res.end(await readFile(file));
+    res.end(body);
   } catch {
     res.writeHead(404).end();
   }

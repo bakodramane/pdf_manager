@@ -87,6 +87,8 @@ jobs:
           "PDFM_SIGNTOOL=$($st.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
       # Add the provider's login step here when the maintainer chooses one
       # (for example azure/login with OIDC for Microsoft's managed signing service).
+      - name: Electron binary (downloaded on demand since Electron 45; checksum-verified)
+        run: npm run electron:install
       - name: Package (portable + per-user NSIS)
         run: npx electron-builder --win portable nsis --publish never
       - name: Verify signatures (fails closed when signing is required)
