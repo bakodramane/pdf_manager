@@ -17,8 +17,13 @@ function binaryFilename(tool: PopplerTool, platform: NodeJS.Platform): string {
   return platform === "win32" ? `${tool}.exe` : tool;
 }
 
-function probeExecutable(executable: string): { ok: boolean; version?: string; error?: string } {
+function probeExecutable(
+  executable: string,
+  env: NodeJS.ProcessEnv,
+): { ok: boolean; version?: string; error?: string } {
+  // Pass the caller's env so PATH lookup honours it (not only process.env).
   const res = spawnSync(executable, ["-v"], {
+    env,
     encoding: "utf8",
     stdio: "pipe",
     windowsHide: true,
@@ -87,7 +92,7 @@ export function resolvePopplerExecutable(
           reason: `PDFTOTEXT_PATH points to a directory (${configuredRaw}). Point it to the executable instead, e.g. ${suggested}`,
         };
       }
-      const probe = probeExecutable(configuredRaw);
+      const probe = probeExecutable(configuredRaw, env);
       if (!probe.ok) {
         return {
           available: false,
@@ -110,7 +115,7 @@ export function resolvePopplerExecutable(
       : dirname(configuredRaw);
     const sibling = join(siblingDir, binaryFilename("pdfinfo", platform));
     if (existsSync(sibling) && !statSync(sibling).isDirectory()) {
-      const probe = probeExecutable(sibling);
+      const probe = probeExecutable(sibling, env);
       if (probe.ok) {
         return {
           available: true,
@@ -123,7 +128,7 @@ export function resolvePopplerExecutable(
     }
   }
 
-  const probe = probeExecutable(tool);
+  const probe = probeExecutable(tool, env);
   if (probe.ok) {
     return {
       available: true,

@@ -11,6 +11,12 @@ import {
   resolvePopplerExecutable,
 } from "./poppler";
 
+/** An env whose PATH is an empty folder, so no Poppler binary can be found. */
+function noPopplerEnv(extra: NodeJS.ProcessEnv = {}): { env: NodeJS.ProcessEnv; cleanup: () => void } {
+  const emptyDir = mkdtempSync(join(tmpdir(), "pdfm-empty-path-"));
+  return { env: { PATH: emptyDir, ...extra }, cleanup: () => rmSync(emptyDir, { recursive: true, force: true }) };
+}
+
 describe("Poppler test prerequisite resolution", () => {
   it("reports a clear error when PDFTOTEXT_PATH does not exist", () => {
     const missing = join(tmpdir(), "pdfm-does-not-exist", "pdftotext.exe");
@@ -48,18 +54,26 @@ describe("Poppler test prerequisite resolution", () => {
   });
 
   it("fails in optional resolution when CI or PDFM_REQUIRE_POPPLER is set and Poppler is absent", () => {
-    const emptyPathEnv: NodeJS.ProcessEnv = { PATH: "", Path: "", CI: "true" };
-    expect(isPopplerRequiredByEnv(emptyPathEnv)).toBe(true);
-    expect(() => resolveOptionalPopplerExecutable("pdftotext", emptyPathEnv, "linux")).toThrow(
-      /sudo apt-get install -y poppler-utils/,
-    );
+    const { env, cleanup } = noPopplerEnv({ CI: "true" });
+    try {
+      expect(isPopplerRequiredByEnv(env)).toBe(true);
+      expect(() => resolveOptionalPopplerExecutable("pdftotext", env, "linux")).toThrow(
+        /sudo apt-get install -y poppler-utils/,
+      );
+    } finally {
+      cleanup();
+    }
     expect(isPopplerRequiredByEnv({ PDFM_REQUIRE_POPPLER: "1" })).toBe(true);
     expect(isPopplerRequiredByEnv({})).toBe(false);
   });
 
   it("returns null in optional resolution locally when Poppler is not on PATH", () => {
-    const emptyPathEnv: NodeJS.ProcessEnv = { PATH: "", Path: "" };
-    expect(resolveOptionalPopplerExecutable("pdftotext", emptyPathEnv, "win32")).toBeNull();
+    const { env, cleanup } = noPopplerEnv();
+    try {
+      expect(resolveOptionalPopplerExecutable("pdftotext", env, "win32")).toBeNull();
+    } finally {
+      cleanup();
+    }
   });
 
   it("prioritises platform-specific instructions including portable Windows without admin rights", () => {
