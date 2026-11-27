@@ -26,6 +26,7 @@
     "predev": "npm run assets",
     "prebuild": "npm run assets",
     "pretest": "npm run assets",
+    "test:check-prereqs": "node scripts/check-test-prerequisites.mjs",
     "test:e2e": "playwright test --trace off",
     "test:e2e:electron": "playwright test --project=electron --trace off",
     "test:e2e:web": "playwright test --project=web --trace off",

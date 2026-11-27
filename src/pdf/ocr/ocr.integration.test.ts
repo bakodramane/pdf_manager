@@ -9,7 +9,6 @@
  * engineering targets for clean scans (CER ≤ 5 %, WER ≤ 10 %).
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -25,20 +24,14 @@ import { addOcrTextLayer } from "./textLayer";
 import { cer, wer } from "./metrics";
 import { hasUsefulText } from "./detect";
 import type { OcrPage } from "./types";
+import { formatPopplerInstallHelp, resolveOptionalPopplerExecutable, runPdftotext } from "../../test/poppler";
 
 const require = createRequire(import.meta.url);
 const FONT = readFileSync(require.resolve("@expo-google-fonts/noto-sans/400Regular/NotoSans_400Regular.ttf"));
 const LANG_DIR = (lang: string) =>
   join(require.resolve(`@tesseract.js-data/${lang}/package.json`), "..", "4.0.0_best_int");
 const STD_FONTS = join(require.resolve("pdfjs-dist/package.json"), "..", "standard_fonts") + "/";
-const hasPdftotext = (() => {
-  try {
-    execFileSync("pdftotext", ["-v"], { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-})();
+const pdftotextBin = resolveOptionalPopplerExecutable("pdftotext");
 
 const EN = [
   "The quick brown fox jumps over the lazy dog.",
@@ -158,6 +151,9 @@ const LANG_STAGE = join(dir, "lang");
 const report: Record<string, unknown>[] = [];
 
 beforeAll(() => {
+  if (!pdftotextBin) {
+    console.warn(`\n[ocr.integration.test.ts] Poppler not available locally; Poppler-only assertions skipped:\n${formatPopplerInstallHelp("pdftotext")}\n`);
+  }
   mkdirSync(LANG_STAGE, { recursive: true });
   for (const l of ["eng", "fra"]) {
     writeFileSync(join(LANG_STAGE, `${l}.traineddata.gz`), readFileSync(join(LANG_DIR(l), `${l}.traineddata.gz`)));
@@ -213,10 +209,10 @@ describe("offline OCR → searchable PDF", () => {
 
       const viaPdfjs = await extractWithPdfjs(out);
       let viaPoppler: string | null = null;
-      if (hasPdftotext) {
+      if (pdftotextBin) {
         const file = join(dir, `${f.name}.pdf`);
         writeFileSync(file, out);
-        viaPoppler = execFileSync("pdftotext", ["-enc", "UTF-8", "-layout", file, "-"]).toString("utf8");
+        viaPoppler = runPdftotext(["-enc", "UTF-8", "-layout", file, "-"], pdftotextBin);
       }
 
       const row = {
@@ -246,8 +242,7 @@ describe("offline OCR → searchable PDF", () => {
     }, 120_000);
   }
 
-  it("places words where they appear on the page (Poppler bounding boxes)", async () => {
-    if (!hasPdftotext) return;
+  it.skipIf(!pdftotextBin)("places words where they appear on the page (Poppler bounding boxes)", async () => {
     const f = FIXTURES[0];
     const scan = await scanPdf(f);
     const { page } = await ocrScan(scan, f.lang);
@@ -255,7 +250,7 @@ describe("offline OCR → searchable PDF", () => {
     await addOcrTextLayer(doc, [page], FONT);
     const file = join(dir, "bbox.pdf");
     writeFileSync(file, await doc.save());
-    const html = execFileSync("pdftotext", ["-bbox", file, "-"]).toString("utf8");
+    const html = runPdftotext(["-bbox", file, "-"], pdftotextBin!);
     const m = html.match(/<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">The<\/word>/);
     expect(m).not.toBeNull();
     const [xMin, yMin, xMax] = m!.slice(1).map(Number);

@@ -5,7 +5,7 @@ import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "n
 import { join, relative, sep } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
-import pkg from "./package.json";
+import pkg from "./package.json" with { type: "json" };
 
 const require = createRequire(import.meta.url);
 // Single source of truth for the Content Security Policy (also sent as a

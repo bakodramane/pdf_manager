@@ -1,6 +1,5 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { execFileSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -10,6 +9,9 @@ import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { compressPdf } from "./compress";
 import { targetSize, unpredictPng, type ImageCodec } from "./compressImages";
 import { rasterizePage } from "./ocr/rasterize";
+import { resolveOptionalPopplerExecutable, runPdfinfo } from "../test/poppler";
+
+const pdfinfoBin = resolveOptionalPopplerExecutable("pdfinfo");
 
 /** Node codec with the same behaviour as the browser one. */
 const nodeCodec: ImageCodec = {
@@ -190,14 +192,12 @@ describe("compression profiles", () => {
     expect(cmyk).toBeDefined();
     // Visually close to the original.
     expect(meanDiff(await render(input, 1), await render(bytes, 1))).toBeLessThan(6);
-    // Independent parser accepts the file.
-    try {
+    // Independent parser accepts the file (always enforced in CI).
+    if (pdfinfoBin) {
       const dir = mkdtempSync(join(tmpdir(), "pdfm-cmp-"));
       writeFileSync(join(dir, "out.pdf"), bytes);
-      const info = execFileSync("pdfinfo", [join(dir, "out.pdf")]).toString();
+      const info = runPdfinfo([join(dir, "out.pdf")], pdfinfoBin);
       expect(info).toMatch(/Pages:\s+3/);
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
     }
   }, 60_000);
 

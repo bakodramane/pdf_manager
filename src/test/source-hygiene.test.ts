@@ -47,4 +47,25 @@ describe("packaging", () => {
     const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
     expect(pkg.dependencies ?? {}).toEqual({});
   });
+
+  it("keeps Poppler strictly a development/testing dependency (never required by shipped builds)", () => {
+    const popplerRef = /\b(pdftotext|pdfinfo|pdftoppm|poppler)\b/i;
+    const offenders: string[] = [];
+
+    // Shipped renderer and Electron runtime code (excluding test files and test helpers).
+    for (const top of ["src", "electron"]) {
+      for (const f of files(join(ROOT, top))) {
+        const rel = relative(ROOT, f).replace(/\\/g, "/");
+        if (rel.startsWith("src/test/") || /\.test\.(ts|tsx|js|cjs|mjs)$/.test(rel)) continue;
+        if (popplerRef.test(readFileSync(f, "utf8"))) offenders.push(rel);
+      }
+    }
+
+    // Shipped asset pipeline and Electron packaging configuration.
+    for (const rel of ["scripts/copy-assets.mjs", "scripts/third-party-notices.mjs", "electron-builder.yml"]) {
+      if (popplerRef.test(readFileSync(join(ROOT, rel), "utf8"))) offenders.push(rel);
+    }
+
+    expect(offenders).toEqual([]);
+  });
 });

@@ -260,31 +260,96 @@ audit with screen readers has not been done yet; please report barriers.
 
 ### Prerequisites
 
-| Tool | Version |
+| Tool | Version / notes |
 |---|---|
 | Node.js | 24 LTS (`.nvmrc`; ≥ 22.13 works) |
 | npm | 10 or later |
+| Poppler (`pdftotext`, `pdfinfo`) | **Development and testing only** — independent PDF checker required by the Electron OCR E2E test and optional Poppler unit checks (enforced in CI). End users of the Windows portable, NSIS installer and web editions **do not** need Poppler. |
 | Windows 10/11 x64 | to build the Windows `.exe` files |
 
 ### Commands
 
 ```bash
-npm ci                 # exact versions from package-lock.json
-npm run dev            # browser, http://localhost:5173
-npm run electron:dev   # desktop window
+npm ci                       # exact versions from package-lock.json
+npm run dev                  # browser, http://localhost:5173
+npm run electron:dev         # desktop window
+npm run test:check-prereqs   # verify Poppler (pdftotext / pdfinfo) before running tests
 npm run lint && npm run typecheck && npm test
-npm run build          # dist/ + THIRD-PARTY-NOTICES + build-meta/ (SBOM)
-npm run test:e2e       # Playwright: Electron + web (run `npx playwright install chromium` once)
-npm run bench:ocr      # OCR accuracy/speed report → docs/benchmarks/
-npm run dist           # Windows portable + NSIS installer (unsigned unless configured)
+npm run build                # dist/ + THIRD-PARTY-NOTICES + build-meta/ (SBOM)
+npm run test:e2e             # Playwright: Electron + web (run `npx playwright install chromium` once)
+npm run bench:ocr            # OCR accuracy/speed report → docs/benchmarks/
+npm run dist                 # Windows portable + NSIS installer (unsigned unless configured)
 ```
 
 `npm run assets` copies PDF.js, OCR and font files from `node_modules` into
 `public/` and checks their SHA-256 digests against
 `scripts/asset-digests.json` (it runs automatically before dev/build/test).
 
-On Linux, E2E tests need Xvfb (`xvfb-run -a npm run test:e2e`); some tests use
-Poppler's `pdftotext`/`pdfinfo` as independent checkers when installed.
+#### Installing Poppler for tests
+
+Poppler is never bundled with or required by the shipped desktop or web apps;
+it is used only by automated tests to independently verify generated PDFs
+alongside PDF.js.
+
+- **Windows (portable, no administrator privileges required):**
+  1. Download the latest `Release-*.zip` archive from
+     [oschwartz10612/poppler-windows](https://github.com/oschwartz10612/poppler-windows/releases).
+  2. Extract it to a user-writable folder such as `%USERPROFILE%\Tools\Poppler`.
+  3. Either add `...\Library\bin` to your user `PATH`, or set `PDFTOTEXT_PATH`
+     to `pdftotext.exe` (tests automatically locate the sibling `pdfinfo.exe`):
+     ```powershell
+     $env:PDFTOTEXT_PATH = "$env:USERPROFILE\Tools\Poppler\poppler-<version>\Library\bin\pdftotext.exe"
+     npm run test:check-prereqs
+     ```
+     In Command Prompt (`cmd.exe`):
+     ```bat
+     set PDFTOTEXT_PATH=%USERPROFILE%\Tools\Poppler\poppler-<version>\Library\bin\pdftotext.exe
+     ```
+  - Alternatives on Windows: **Scoop** (user-space, no admin:
+    `scoop install poppler`) or **WinGet**
+    (`winget install -e --id oschwartz10612.Poppler`).
+- **Linux:**
+  - Debian / Ubuntu: `sudo apt-get update && sudo apt-get install -y poppler-utils xvfb`
+    (run E2E headless with `xvfb-run -a npm run test:e2e`)
+  - Fedora / RHEL: `sudo dnf install -y poppler-utils`
+  - Arch Linux: `sudo pacman -S poppler`
+- **macOS:**
+  - Homebrew: `brew install poppler`
+
+Set `PDFM_REQUIRE_POPPLER=1` to require Poppler in local unit tests as CI does
+(the Electron OCR E2E test always requires Poppler and fails with setup
+instructions if it is missing).
+
+#### Corporate networks and Electron downloads (TLS)
+
+On corporate networks with TLS-inspecting proxies or internal root CAs,
+`npm run electron:install` or `npx playwright install chromium` may fail with a
+certificate verification error (such as `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`).
+Use one of these secure options instead of disabling TLS checks:
+
+- **Trust the operating system CA store** (Node.js 22.15+ / 24 LTS):
+  ```powershell
+  $env:NODE_USE_SYSTEM_CA = "1"
+  npm run electron:install
+  ```
+  ```bash
+  NODE_USE_SYSTEM_CA=1 npm run electron:install
+  ```
+- **Provide an organisation-approved CA certificate bundle (PEM):**
+  ```powershell
+  $env:NODE_EXTRA_CA_CERTS = "C:\path\to\approved-corp-ca.pem"
+  npm run electron:install
+  ```
+  ```bash
+  NODE_EXTRA_CA_CERTS=/path/to/approved-corp-ca.pem npm run electron:install
+  ```
+- If an explicit proxy is required, also configure `HTTPS_PROXY` (and
+  `NO_PROXY=127.0.0.1,localhost`).
+
+> **Security note:** Never disable TLS verification (do **not** set
+> `NODE_TLS_REJECT_UNAUTHORIZED=0` or `npm config set strict-ssl false`).
+> Electron downloads are verified against upstream checksums, and keeping TLS
+> validation enabled protects binary downloads from tampering.
 
 ### Architecture
 
