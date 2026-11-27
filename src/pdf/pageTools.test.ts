@@ -1,6 +1,5 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { execFileSync } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -9,22 +8,19 @@ import { createCanvas } from "@napi-rs/canvas";
 import { addPageNumbers, addTextWatermark, blankPagesPdf, imagesToPdf } from "./pageTools";
 import { duplicatePages, shiftPages } from "./operations";
 import type { PageRef } from "./types";
+import { formatPopplerInstallHelp, resolveOptionalPopplerExecutable, runPdftotext } from "../test/poppler";
 
 const dir = mkdtempSync(join(tmpdir(), "pdfm-tools-"));
-const hasPoppler = (() => {
-  try {
-    execFileSync("pdftotext", ["-v"], { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-})();
+const pdftotextBin = resolveOptionalPopplerExecutable("pdftotext");
+if (!pdftotextBin) {
+  console.warn(`\n[pageTools.test.ts] Skipping Poppler bounding-box checks locally:\n${formatPopplerInstallHelp("pdftotext")}\n`);
+}
 
 /** Words with their displayed-page boxes, from Poppler. */
 function words(bytes: Uint8Array, name: string) {
   const file = join(dir, name);
   writeFileSync(file, bytes);
-  const html = execFileSync("pdftotext", ["-bbox", file, "-"]).toString("utf8");
+  const html = runPdftotext(["-bbox", file, "-"], pdftotextBin!);
   // Poppler's <page> size is unrotated while word boxes are in the displayed
   // frame: swap for the 90/270° pages of mixedPdf().
   const pages = html.split("<page ").slice(1).map((p, i) => {
@@ -102,8 +98,7 @@ describe("generated pages", () => {
 });
 
 describe("stamps on mixed sizes and rotations", () => {
-  it("numbers pages at the bottom centre of the displayed page", async () => {
-    if (!hasPoppler) return;
+  it.skipIf(!pdftotextBin)("numbers pages at the bottom centre of the displayed page", async () => {
     const input = await mixedPdf();
     const copy = input.slice();
     const out = await addPageNumbers(input, { position: "bottom-center", template: "{n} / {total}", start: 1, size: 12 });
@@ -119,8 +114,7 @@ describe("stamps on mixed sizes and rotations", () => {
     });
   });
 
-  it("adds a centred, semi-transparent watermark that reads upright", async () => {
-    if (!hasPoppler) return;
+  it.skipIf(!pdftotextBin)("adds a centred, semi-transparent watermark that reads upright", async () => {
     const out = await addTextWatermark(await mixedPdf(), {
       text: "CONFIDENTIEL",
       size: 48,

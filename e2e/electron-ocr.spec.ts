@@ -1,12 +1,19 @@
 import { test, expect, _electron as electron, type ElectronApplication, type Page } from "@playwright/test";
-import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
+import { requirePopplerExecutable, runPdftotext } from "../src/test/poppler";
 import { writeScannedPdf } from "./fixtures";
 
 // Offline OCR in the real desktop shell: bundled engine + models only, every
-// request logged and checked, searchable PDF validated with Poppler.
+// request logged and checked, searchable PDF validated with both PDF.js and
+// Poppler's pdftotext (independent C++ parser).
+
+const require = createRequire(import.meta.url);
+const STD_FONTS = pathToFileURL(join(require.resolve("pdfjs-dist/package.json"), "..", "standard_fonts") + "/").href;
 
 const LINES = [
   "Le cœur de l'été à Montréal était très agréable.",
@@ -14,11 +21,32 @@ const LINES = [
   "Facture numéro 2048, échéance le 15 mars 2026.",
 ];
 
+async function extractWithPdfjs(filePath: string): Promise<{ numPages: number; text: string }> {
+  const bytes = new Uint8Array(readFileSync(filePath));
+  const task = getDocument({ data: bytes, standardFontDataUrl: STD_FONTS });
+  try {
+    const doc = await task.promise;
+    const chunks: string[] = [];
+    for (let i = 1; i <= doc.numPages; i++) {
+      const content = await (await doc.getPage(i)).getTextContent();
+      chunks.push(content.items.map((it) => ("str" in it ? it.str : "")).join(""));
+    }
+    return { numPages: doc.numPages, text: chunks.join("\n") };
+  } finally {
+    await task.destroy();
+  }
+}
+
 let app: ElectronApplication;
 let page: Page;
+let pdftotextBin: string;
 const saveDir = mkdtempSync(join(tmpdir(), "pdfm-e2e-save-"));
 
 test.beforeAll(async () => {
+  // Fail fast with actionable cross-platform installation instructions before
+  // launching Electron or running OCR if Poppler is missing or misconfigured.
+  pdftotextBin = requirePopplerExecutable("pdftotext");
+
   const isRoot = typeof process.getuid === "function" && process.getuid() === 0;
   app = await electron.launch({
     args: [...(isRoot || process.env.E2E_NO_SANDBOX === "1" ? ["--no-sandbox"] : []), "."],
@@ -45,6 +73,10 @@ test.afterAll(async () => {
 test("recognises a scanned PDF offline and saves a searchable copy", async () => {
   test.setTimeout(240_000);
   const file = await writeScannedPdf(LINES);
+  const beforeOcr = await extractWithPdfjs(file);
+  expect(beforeOcr.numPages).toBe(1);
+  expect(beforeOcr.text.trim()).toBe("");
+
   await page.locator('input[type="file"][accept="application/pdf"]').first().setInputFiles(file);
   await expect(page.getByText(/^1 page$/).first()).toBeVisible({ timeout: 30_000 });
 
@@ -69,8 +101,18 @@ test("recognises a scanned PDF offline and saves a searchable copy", async () =>
       return 0;
     }
   }, { timeout: 30_000 }).toBeGreaterThan(1000);
-  const extracted = execFileSync("pdftotext", ["-enc", "UTF-8", saved, "-"]).toString("utf8");
+
+  // Cross-platform PDF.js validation of the saved searchable PDF.
+  const viaPdfjs = await extractWithPdfjs(saved);
+  expect(viaPdfjs.numPages).toBe(1);
+  expect(viaPdfjs.text).toContain("Montréal");
+  expect(viaPdfjs.text).toContain("quick brown fox");
+  expect(viaPdfjs.text).toContain("échéance");
+
+  // Independent Poppler validation (never skipped or weakened).
+  const extracted = runPdftotext(["-enc", "UTF-8", saved, "-"], pdftotextBin);
   expect(extracted).toContain("Montréal");
+  expect(extracted).toContain("quick brown fox");
   expect(extracted).toContain("échéance");
 
   const requests = await app.evaluate(() => (globalThis as unknown as { __requests: string[] }).__requests);
