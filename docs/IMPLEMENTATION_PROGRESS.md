@@ -29,8 +29,12 @@
   The exact PowerShell labelling step passed on synthetic executables. GNU
   `sha256sum --strict -c SHA256SUMS.txt` verified six files for each of the signed
   and unsigned fixtures. No production executables were created or modified.
-- Final documentation checkpoint and pull request pending; full hosted packaging,
-  Authenticode signing and GitHub attestation generation were not run locally.
+- Documentation checkpoint: `06af3212467eae268a4e9f7dd81bbfd79b6d4d91`
+  verified with `git ls-remote` on `origin/fix/release-asset-selection`.
+- Pull request: <https://github.com/bakodramane/pdf_manager/pull/9>.
+  Implementation and local validation complete; hosted PR CI is reported
+  separately. Full hosted packaging, Authenticode signing and GitHub attestation
+  generation were not run locally.
 - Decision: block both existing drafts and published releases. Replacement of an
   unpublished draft requires maintainer review and manual removal; the workflow
   never edits, deletes or publishes a release.
