@@ -39,6 +39,8 @@ jobs:
         run: npm audit --audit-level=high
       - run: npm run lint
       - run: npm run typecheck
+      - name: Release packaging regression tests
+        run: node --test scripts/release.test.mjs
       - run: npm test
       - run: npm run build
       - name: Electron binary and Playwright browser (versions pinned by the lockfile)

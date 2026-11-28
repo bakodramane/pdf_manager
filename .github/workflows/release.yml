@@ -99,14 +99,19 @@ jobs:
       - name: Label unsigned artifacts
         if: needs.version.outputs.signed != 'true'
         shell: pwsh
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
         run: |
-          Get-ChildItem release -Filter *.exe | ForEach-Object {
-            Rename-Item $_.FullName ($_.BaseName + "-UNSIGNED" + $_.Extension)
+          foreach ($target in @('portable', 'Setup')) {
+            $file = Get-Item -LiteralPath "release/PDF Manager-$env:VERSION-$target.exe" -ErrorAction Stop
+            Rename-Item -LiteralPath $file.FullName -NewName ($file.BaseName + "-UNSIGNED.exe")
           }
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: windows
-          path: release/*.exe
+          path: |
+            release/PDF Manager-${{ needs.version.outputs.version }}-portable${{ needs.version.outputs.signed != 'true' && '-UNSIGNED' || '' }}.exe
+            release/PDF Manager-${{ needs.version.outputs.version }}-Setup${{ needs.version.outputs.signed != 'true' && '-UNSIGNED' || '' }}.exe
           if-no-files-found: error
 
   web:
@@ -141,23 +146,46 @@ jobs:
     name: Checksums, provenance, draft release
     needs: [version, windows, web]
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write # create the draft release
       id-token: write # build provenance attestations
       attestations: write
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      # Named, separate downloads prevent CI metadata/development packages and
+      # merge collisions from reaching the release staging directory.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          path: assets
-          merge-multiple: true
+          name: windows
+          path: incoming/windows
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: web
+          path: incoming/web
+      - name: Validate exact distribution assets (reject missing, unexpected or duplicate files)
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          SIGNED: ${{ needs.version.outputs.signed }}
+        run: node scripts/release-assets.mjs stage incoming assets "$VERSION" "$SIGNED"
       - name: SHA-256 checksums over the final bytes
-        working-directory: assets
-        run: |
-          sha256sum -- * > SHA256SUMS.txt
-          cat SHA256SUMS.txt
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          SIGNED: ${{ needs.version.outputs.signed }}
+        run: node scripts/release-assets.mjs checksums assets "$VERSION" "$SIGNED"
       - name: Verify checksums (separate step)
         working-directory: assets
-        run: sha256sum -c SHA256SUMS.txt
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          SIGNED: ${{ needs.version.outputs.signed }}
+        run: |
+          node ../scripts/release-assets.mjs verify . "$VERSION" "$SIGNED"
+          sha256sum --strict -c SHA256SUMS.txt
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: "assets/*"
@@ -166,12 +194,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.version.outputs.version }}
           SIGNED: ${{ needs.version.outputs.signed }}
-        run: |
-          if [ "$SIGNED" = "true" ]; then
-            label="Windows binaries are Authenticode-signed (verify with signtool or Get-AuthenticodeSignature)."
-          else
-            label="⚠️ UNSIGNED preview: Windows binaries are NOT code-signed. Verify SHA256SUMS.txt and the build provenance before use."
-          fi
-          printf '%s\n\nSee CHANGELOG.md and docs/release/verify.md.\n' "$label" > notes.md
-          gh release create "v$VERSION" assets/* --repo "$GITHUB_REPOSITORY" --draft \
-            --title "PDF Manager $VERSION" --notes-file notes.md --target "$GITHUB_SHA"
+        run: node scripts/draft-release.mjs

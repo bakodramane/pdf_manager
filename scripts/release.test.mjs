@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { mkdtemp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { assetNames, distributionNames, stageAssets, verifyAssets, writeChecksums } from "./release-assets.mjs";
 import { createDraft } from "./draft-release.mjs";
@@ -34,6 +37,7 @@ for (const signed of ["true", "false"]) {
     const names = await verifyAssets(options.directory, version, signed);
     assert.equal(names.length, 7);
     assert.equal(names.filter((name) => name.endsWith(".exe")).length, 2);
+    assert.ok(names.every((name) => !name.includes(" ")));
     assert.equal(names.filter((name) => name.endsWith("-UNSIGNED.exe")).length, signed === "false" ? 2 : 0);
     const manifest = await readFile(join(options.directory, "SHA256SUMS.txt"), "utf8");
     assert.equal(manifest.trim().split("\n").length, 6);
@@ -141,6 +145,58 @@ test("API failures and malformed responses block draft creation", async (t) => {
   await assert.rejects(createDraft(options, () => { throw new Error("API unavailable"); }), /API unavailable/);
   for (const response of ["not JSON", "{}", "[{}]"]) {
     await assert.rejects(createDraft(options, () => response));
+  }
+});
+
+test("signed draft retains signed notes and uploads only the verified list", async (t) => {
+  const options = await prepared(t, "true");
+  await createDraft(options, (args) => {
+    if (args[0] === "api") return "[[]]";
+    assert.ok(args.includes(`PDF Manager ${version}`));
+    assert.ok(!args.some((arg) => arg.includes("UNSIGNED")));
+    const notes = readFileSync(args[args.indexOf("--notes-file") + 1], "utf8");
+    assert.match(notes, /Authenticode-signed/);
+    assert.ok(notes.includes(sha));
+    return "draft URL";
+  });
+});
+
+test("CLI stages and verifies assets and fails on extra final files", async (t) => {
+  const options = await fixture(t);
+  const script = fileURLToPath(new URL("./release-assets.mjs", import.meta.url));
+  const cli = (...args) => execFileSync(process.execPath, [script, ...args], { encoding: "utf8", stdio: "pipe", timeout: 10_000 });
+  cli("stage", options.incoming, options.directory, version, "false");
+  cli("checksums", options.directory, version, "false");
+  assert.match(cli("verify", options.directory, version, "false"), /verify passed/);
+  await writeFile(join(options.directory, "internal-metadata.json"), "metadata");
+  assert.throws(() => cli("verify", options.directory, version, "false"), /unexpected/);
+});
+
+test("workflow downloads only isolated release inputs and keeps security gates", async () => {
+  const workflow = (await readFile(new URL("../.github/workflows/release.yml", import.meta.url), "utf8")).replaceAll("\r\n", "\n");
+  const draft = workflow.slice(workflow.indexOf("\n  draft:"));
+  const downloads = [...draft.matchAll(/uses: actions\/download-artifact@([a-f0-9]+)[^\n]*\n\s+with:\n\s+name: (\w+)\n\s+path: ([^\r\n]+)/g)];
+  assert.deepEqual(downloads.map((match) => match.slice(2)), [["windows", "incoming/windows"], ["web", "incoming/web"]]);
+  assert.ok(!draft.includes("merge-multiple"));
+  assert.ok(draft.indexOf("release-assets.mjs stage") < draft.indexOf("release-assets.mjs checksums"));
+  assert.ok(draft.indexOf("release-assets.mjs verify") < draft.indexOf("actions/attest-build-provenance@"));
+  assert.match(draft, /sha256sum --strict -c SHA256SUMS.txt/);
+  assert.match(draft, /subject-path: "assets\/\*"/);
+  assert.match(draft, /run: node scripts\/draft-release.mjs/);
+  for (const match of workflow.matchAll(/uses: ([^\r\n]+)/g)) assert.match(match[1], /@[a-f0-9]{40}(?: |$)|^\.\//);
+  assert.match(workflow, /persist-credentials: false/);
+  assert.match(workflow, /PDFM_REQUIRE_SIGNING:/);
+  assert.match(workflow, /-RequireSigned/);
+  assert.match(workflow, /release-signing/);
+  assert.match(workflow, /cancel-in-progress: false/);
+  assert.match(workflow, /npx electron-builder --win portable nsis --publish never/);
+  const upload = workflow.slice(workflow.indexOf("name: windows\n"), workflow.indexOf("\n  web:"));
+  assert.ok(!upload.includes("*.exe"));
+  for (const signed of ["true", "false"]) {
+    const paths = [...upload.matchAll(/release\/(PDF Manager-[^\r\n]+)/g)].map((match) => match[1]
+      .replace("${{ needs.version.outputs.version }}", version)
+      .replace("${{ needs.version.outputs.signed != 'true' && '-UNSIGNED' || '' }}", signed !== "true" ? "-UNSIGNED" : ""));
+    assert.deepEqual(paths, assetNames(version, signed).windows);
   }
 });
 

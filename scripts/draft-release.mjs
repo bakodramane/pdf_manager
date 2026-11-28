@@ -6,7 +6,10 @@ import { pathToFileURL } from "node:url";
 import { verifyAssets } from "./release-assets.mjs";
 
 function gh(args) {
-  return execFileSync("gh", args, { encoding: "utf8", timeout: 120_000, maxBuffer: 10 * 1024 * 1024 });
+  return execFileSync("gh", args, {
+    encoding: "utf8", timeout: args[0] === "release" ? 600_000 : 120_000,
+    maxBuffer: 10 * 1024 * 1024,
+  });
 }
 
 export async function createDraft({ directory, version, signed, repo, sha }, runGh = gh) {

@@ -26,7 +26,13 @@ export function assetNames(version, signed) {
 }
 
 export function distributionNames(version, signed) {
-  return Object.values(assetNames(version, signed)).flat().sort();
+  return Object.values(assetNames(version, signed)).flat().map(distributionName).sort();
+}
+
+// GitHub sanitises spaces in uploaded asset names. Choose the public names
+// before hashing so the downloaded files match the manifest verbatim.
+function distributionName(name) {
+  return name.replace(/^PDF Manager-/, "PDF-Manager-");
 }
 
 async function digest(path) {
@@ -66,7 +72,7 @@ export async function stageAssets(incoming, directory, version, signed) {
   }
   await mkdir(directory); // Refuse to reuse a potentially stale output directory.
   for (const [group, names] of Object.entries(groups)) {
-    for (const name of names) await copyFile(join(incoming, group, name), join(directory, name));
+    for (const name of names) await copyFile(join(incoming, group, name), join(directory, distributionName(name)));
   }
   await validateDirectory(directory, distributionNames(version, signed));
 }
